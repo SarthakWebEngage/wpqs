@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Web Personalization Insights</title>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCGiBGcPbW-BIaGH5BFXM21XxvWXELGSrM",
+      authDomain: "training-37d3a.firebaseapp.com",
+      projectId: "training-37d3a",
+      storageBucket: "training-37d3a.firebasestorage.app",
+      messagingSenderId: "532862216436",
+      appId: "1:532862216436:web:bc3e09415d2ae871bed6a1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.submitForm = async function (e) {
+      e.preventDefault();
+
+      const data = {
+        clientName: document.getElementById("clientName").value,
+
+        // Speed
+        launchTime: document.getElementById("launchTime").value,
+        missedCampaigns: document.getElementById("missedCampaigns").value,
+
+        // Dependency
+        dependency: document.getElementById("dependency").value,
+
+        // Templates / Content
+        reuse: document.getElementById("reuse").value,
+        templateImpact: document.getElementById("templateImpact").value,
+
+        // DnD Editor
+        dndImpact: document.getElementById("dndImpact").value,
+
+        // Property Selector
+        placementIssues: document.getElementById("placementIssues").value,
+        selectorImportance: document.getElementById("selectorImportance").value,
+
+        // Performance
+        performanceIssue: document.getElementById("performanceIssue").value,
+
+        // Recommendations
+        recommendationUsage: document.getElementById("recommendationUsage").value,
+        recommendationDifficulty: document.getElementById("recommendationDifficulty").value,
+
+        // Gamification
+        gamificationUse: document.getElementById("gamificationUse").value,
+        gamificationInterest: document.getElementById("gamificationInterest").value,
+
+        // Open feedback
+        frustration: document.getElementById("frustration").value,
+
+        createdAt: new Date()
+      };
+
+      try {
+        await addDoc(collection(db, "surveyResponses"), data);
+        alert("Submitted successfully!");
+        document.getElementById("surveyForm").reset();
+      } catch (err) {
+        console.error(err);
+        alert("Error submitting form");
+      }
+    };
+  </script>
+
+  <style>
+    body { font-family: Arial; max-width: 800px; margin: auto; padding: 20px; }
+    h2 { border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+    label { font-weight: bold; margin-top: 15px; display: block; }
+    small { color: #666; }
+    input, select, textarea {
+      width: 100%; padding: 8px; margin-top: 5px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      background: black;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Web Personalization Client Insights</h1>
+
+<form id="surveyForm" onsubmit="submitForm(event)">
+
+  <!-- BASIC -->
+  <h2>Client Info</h2>
+  <label>Client Name</label>
+  <input type="text" id="clientName" required />
+
+  <!-- SPEED -->
+  <h2>Campaign Speed</h2>
+
+  <label>How long does it take to launch a campaign?</label>
+  <select id="launchTime">
+    <option><1 day</option>
+    <option>1–3 days</option>
+    <option>3–7 days</option>
+    <option>>7 days</option>
+  </select>
+
+  <label>% Campaigns dropped due to effort/time</label>
+  <input type="number" id="missedCampaigns" placeholder="e.g. 20" />
+
+  <!-- DEPENDENCY -->
+  <h2>Dependency</h2>
+
+  <label>Dependency on developers</label>
+  <select id="dependency">
+    <option>Always</option>
+    <option>Often</option>
+    <option>Sometimes</option>
+    <option>Rarely</option>
+    <option>Never</option>
+  </select>
+
+  <!-- DnD -->
+  <h2>Drag & Drop Editor</h2>
+
+  <label>Would a drag-and-drop editor reduce go-to-market time?</label>
+  <small>Example: Create banner/popup without writing code</small>
+  <select id="dndImpact">
+    <option>Not useful</option>
+    <option>Somewhat useful</option>
+    <option>Very useful</option>
+    <option>Critical</option>
+  </select>
+
+  <!-- TEMPLATE -->
+  <h2>Templates & Content</h2>
+
+  <label>% campaigns using similar layouts</label>
+  <select id="reuse">
+    <option><20%</option>
+    <option>20–50%</option>
+    <option>50–80%</option>
+    <option>>80%</option>
+  </select>
+
+  <label>Would pre-built templates help?</label>
+  <small>Example: recommendation widgets, banners</small>
+  <select id="templateImpact">
+    <option>Not useful</option>
+    <option>Somewhat useful</option>
+    <option>Very useful</option>
+    <option>Critical</option>
+  </select>
+
+  <!-- PROPERTY SELECTOR -->
+  <h2>Placement / Selector</h2>
+
+  <label>How often do campaigns break due to UI/DOM changes?</label>
+  <input type="number" min="1" max="5" id="placementIssues" />
+
+  <label>Importance of visual property selector?</label>
+  <small>Example: Click on page to select element</small>
+  <select id="selectorImportance">
+    <option>Low</option>
+    <option>Medium</option>
+    <option>High</option>
+    <option>Critical</option>
+  </select>
+
+  <!-- PERFORMANCE -->
+  <h2>Performance</h2>
+
+  <label>Is personalization speed a concern?</label>
+  <select id="performanceIssue">
+    <option>Yes</option>
+    <option>No</option>
+  </select>
+
+  <!-- RECOMMENDATION -->
+  <h2>Recommendations</h2>
+
+  <label>Usage of recommendation widgets</label>
+  <select id="recommendationUsage">
+    <option>Rare</option>
+    <option>Moderate</option>
+    <option>Heavy</option>
+  </select>
+
+  <label>Difficulty in implementing recommendations</label>
+  <select id="recommendationDifficulty">
+    <option>Easy</option>
+    <option>Moderate</option>
+    <option>Hard</option>
+  </select>
+
+  <!-- GAMIFICATION -->
+  <h2>Gamification</h2>
+
+  <label>Does client use gamification?</label>
+  <select id="gamificationUse">
+    <option>Yes</option>
+    <option>No</option>
+  </select>
+
+  <label>Interest in gamification</label>
+  <select id="gamificationInterest">
+    <option>Low</option>
+    <option>Medium</option>
+    <option>High</option>
+  </select>
+
+  <!-- FEEDBACK -->
+  <h2>Feedback</h2>
+
+  <label>Top frustration</label>
+  <textarea id="frustration"></textarea>
+
+  <button type="submit">Submit</button>
+
+</form>
+
+</body>
+</html>
