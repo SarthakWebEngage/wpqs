@@ -49,7 +49,19 @@
         // Recommendations
         recommendationUsage: document.getElementById("recommendationUsage").value,
         recommendationDifficulty: document.getElementById("recommendationDifficulty").value,
+        overlayUsage: document.getElementById("overlayUsage").value,
+        overlayUser: document.getElementById("overlayUser").value,
+        overlayDependencyImpact: document.getElementById("overlayDependencyImpact").value,
+        beforeOverlayTime: document.getElementById("beforeOverlayTime").value,
+        afterOverlayTime: document.getElementById("afterOverlayTime").value,
+        overlaySpeedImpact: document.getElementById("overlaySpeedImpact").value,
+        servicesReduction: document.getElementById("servicesReduction").value,
 
+        recUsage: document.getElementById("recUsage").value,
+        recTypes: Array.from(document.getElementById("recTypes").selectedOptions).map(o => o.value),
+        recUrls: document.getElementById("recUrls").value,
+        recReuse: document.getElementById("recReuse").value,
+        recDifficulty: document.getElementById("recDifficulty").value,
         // Gamification
         gamificationUse: document.getElementById("gamificationUse").value,
         gamificationInterest: document.getElementById("gamificationInterest").value,
@@ -159,6 +171,7 @@
     <option>Critical</option>
   </select>
 
+
   <!-- PROPERTY SELECTOR -->
   <h2>Placement / Selector</h2>
 
@@ -200,6 +213,39 @@
     <option>Hard</option>
   </select>
 
+  <h2>Recommendation Layouts</h2>
+
+  <label>Does the client use recommendation widgets?</label>
+  <select id="recUsage">
+    <option>Yes</option>
+    <option>No</option>
+  </select>
+
+  <label>Types of recommendation layouts used</label>
+  <select id="recTypes" multiple>
+    <option>Carousel</option>
+    <option>Grid</option>
+    <option>List View</option>
+    <option>Single Highlight</option>
+  </select>
+
+  <label>Paste URLs of pages where recommendations are used</label>
+  <small>Example: product page, homepage, cart page</small>
+  <textarea id="recUrls" placeholder="Enter multiple URLs separated by comma"></textarea>
+
+  <label>Are these layouts reused across pages?</label>
+  <select id="recReuse">
+    <option>Yes</option>
+    <option>No</option>
+    <option>Partially</option>
+  </select>
+
+  <label>Difficulty in implementing these layouts</label>
+  <select id="recDifficulty">
+    <option>Easy</option>
+    <option>Moderate</option>
+    <option>Hard</option>
+  </select>
   <!-- GAMIFICATION -->
   <h2>Gamification</h2>
 
@@ -214,6 +260,59 @@
     <option>Low</option>
     <option>Medium</option>
     <option>High</option>
+  </select>
+
+  <h2>On-site Overlays (DnD + Templates)</h2>
+
+  <label>Is the client using the new overlay builder?</label>
+  <select id="overlayUsage">
+    <option>Yes</option>
+    <option>No</option>
+  </select>
+
+  <label>Who primarily uses the overlay builder?</label>
+  <select id="overlayUser">
+    <option>Marketing Team</option>
+    <option>Product Team</option>
+    <option>Engineering Team</option>
+  </select>
+
+  <label>Did overlays reduce dependency on developers?</label>
+  <select id="overlayDependencyImpact">
+    <option>Significantly reduced</option>
+    <option>Somewhat reduced</option>
+    <option>No change</option>
+  </select>
+
+  <label>Campaign launch time BEFORE overlays</label>
+  <select id="beforeOverlayTime">
+    <option><1 day</option>
+    <option>1–3 days</option>
+    <option>3–7 days</option>
+    <option>>7 days</option>
+  </select>
+
+  <label>Campaign launch time AFTER overlays</label>
+  <select id="afterOverlayTime">
+    <option><1 day</option>
+    <option>1–3 days</option>
+    <option>3–7 days</option>
+    <option>>7 days</option>
+  </select>
+
+  <label>How much faster is campaign creation now?</label>
+  <select id="overlaySpeedImpact">
+    <option>No improvement</option>
+    <option>1.5x faster</option>
+    <option>2x faster</option>
+    <option>3x+ faster</option>
+  </select>
+
+  <label>Does overlay builder reduce reliance on services team?</label>
+  <select id="servicesReduction">
+    <option>Yes significantly</option>
+    <option>Somewhat</option>
+    <option>No</option>
   </select>
 
   <!-- FEEDBACK -->
