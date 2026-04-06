@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nunjucks Builder – WebEngage</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+  .block-if   { border-left: 3px solid #3b82f6; }
+  .block-for  { border-left: 3px solid #22c55e; }
+  .block-text { border-left: 3px solid #6b7280; }
+  .child-container { border-left: 2px dashed #334155; margin-left: 1rem; padding-left: 0.75rem; }
+  textarea { resize: none; overflow: hidden; min-height: 60px; }
+  .hljs { border-radius: 0.5rem; font-size: 0.8rem; }
+  .elif-branch { border-left: 3px solid #a78bfa; }
+
+  /* Token picker dropdown */
+  .token-picker { position: relative; display: inline-flex; align-items: center; gap: 2px; }
+  .token-picker .tp-cat {
+    background: #1e293b; border: 1px solid #475569; border-radius: 4px 0 0 4px;
+    color: #94a3b8; font-size: 0.65rem; padding: 2px 4px; cursor: pointer; white-space: nowrap;
+  }
+  .token-picker .tp-search-wrap {
+    position: relative;
+  }
+  .token-picker .tp-search {
+    background: #1e293b; border: 1px solid #475569; border-left: none; border-radius: 0 4px 4px 0;
+    color: #e2e8f0; font-size: 0.7rem; padding: 2px 6px; width: 140px; outline: none;
+  }
+  .token-picker .tp-search:focus { border-color: #3b82f6; }
+  .tp-dropdown {
+    position: absolute; top: 100%; left: 0; z-index: 50; min-width: 220px; max-height: 200px;
+    overflow-y: auto; background: #0f172a; border: 1px solid #334155; border-radius: 4px;
+    margin-top: 2px; display: none;
+  }
+  .tp-dropdown.open { display: block; }
+  .tp-dropdown .tp-group { padding: 4px 8px 2px; font-size: 0.6rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+  .tp-dropdown .tp-item {
+    padding: 4px 10px; font-size: 0.7rem; color: #cbd5e1; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tp-dropdown .tp-item:hover { background: #1e293b; color: #fff; }
+  .tp-dropdown .tp-item.selected { color: #60a5fa; }
+</style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 font-mono text-sm">
+
+<div class="max-w-4xl mx-auto">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-xl font-bold text-white">Nunjucks Builder</h1>
+      <p class="text-slate-400 text-xs">WebEngage Personalization</p>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="addBlock(rootContainer,'if')"   class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-xs font-semibold">+ If</button>
+      <button onclick="addBlock(rootContainer,'for')"  class="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded text-xs font-semibold">+ For</button>
+      <button onclick="addBlock(rootContainer,'text')" class="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 rounded text-xs font-semibold">+ Text</button>
+    </div>
+  </div>
+
+  <div id="root-container" class="space-y-2 mb-6 min-h-[60px] rounded-lg border border-dashed border-slate-700 p-3"></div>
+
+  <div class="bg-slate-800 rounded-lg p-4">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-slate-300 text-xs font-semibold uppercase tracking-wider">Generated Nunjucks</span>
+      <button id="copy-btn" onclick="copyCode()" class="px-3 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs">Copy</button>
+    </div>
+    <pre><code id="output" class="language-twig text-xs"></code></pre>
+  </div>
+</div>
+
+<script>
+// ── Token data ────────────────────────────────────────────────────────────────
+const TOKENS = {
+  userSystem: [
+    { name: 'first_name',    label: 'First Name',           dataType: 'string' },
+    { name: 'last_name',     label: 'Last Name',            dataType: 'string' },
+    { name: 'birth_date',    label: 'Date of Birth',        dataType: 'date'   },
+    { name: 'phone',         label: 'Phone Number',         dataType: 'string' },
+    { name: 'hashed_phone',  label: 'Hashed Phone Number',  dataType: 'string' },
+    { name: 'gender',        label: 'Gender',               dataType: 'string' },
+    { name: 'email',         label: 'Email Address',        dataType: 'string' },
+    { name: 'hashed_email',  label: 'Hashed Email Address', dataType: 'string' },
+    { name: 'company',       label: 'Company',              dataType: 'string' },
+    { name: 'tz_name',       label: 'Time Zone',            dataType: 'string' },
+    { name: 'cuid',          label: 'userId',               dataType: 'string' },
+  ],
+  userCustom: [
+    { name: 'c_sdk_type' }, { name: 'postal_code' }, { name: 'is_a' },
+    { name: 'address' }, { name: 'referral_url' }, { name: 'policyNumber' },
+    { name: 'age' }, { name: 'utm_source' }, { name: 'policies' },
+    { name: 'Policies' }, { name: 'realtime' }, { name: 'app_id' },
+    { name: 'sdk_meta' }, { name: 'state' }, { name: 'previousPurchasedAMCPlan' },
+    { name: 'error_code' }, { name: 'app_version_code_new' }, { name: 'Twitter username' },
+    { name: 'country' }, { name: 'Theme' }, { name: 'isCartItemPresent' },
+    { name: 'mobile' }, { name: 'Person Type' }, { name: 'Subscribed to email' },
+    { name: 'age' }, { name: 'Age' }, { name: 'NumberOfItems' },
+    { name: 'userId' }, { name: 'anonymousId' }, { name: 'user_id' },
+    { name: 'last_seen' }, { name: 'c_sdk_version' }, { name: 'dns' },
+  ],
+  eventCustom: [
+    { name: 'Added to Cart' }, { name: 'Item purchased' }, { name: 'Outlet_visit' },
+    { name: 'Pev event' }, { name: 'Sale coupon' }, { name: 'add_to_cart' },
+    { name: 'liefeed' }, { name: 'seats' }, { name: 'Order Placed' },
+    { name: 'Product Details Viewed' }, { name: 'Cart Updated' }, { name: 'search_flight' },
+    { name: 'book_flight' }, { name: 'screen_view' }, { name: 'Viewed Home Page' },
+    { name: 'Viewed Recommended Products' }, { name: 'Product-Clicked' },
+    { name: 'Product-viewed' }, { name: 'App Opened' }, { name: 'Register' },
+  ],
+};
+
+// Deduplicate userCustom
+TOKENS.userCustom = [...new Map(TOKENS.userCustom.map(t => [t.name, t])).values()];
+
+const CATEGORIES = [
+  { key: 'userSystem', label: 'User · System',  group: 'user',  sub: 'system'  },
+  { key: 'userCustom', label: 'User · Custom',  group: 'user',  sub: 'custom'  },
+  { key: 'eventCustom',label: 'Event · Custom', group: 'event', sub: 'custom'  },
+];
+
+const OPERATORS = ['is defined','is not defined','==','!=','>','<','>=','<=','contains'];
+
+// ── Collections for FOR loop ─────────────────────────────────────────────────
+// Recommendations: accessed directly by slug as the loop collection.
+//   i_ prefix = item-based (collaborative filtering)
+//   u_ prefix = user-based (personalised per user)
+// Inside the loop: item.field_name accesses catalog columns (item_id, price, image_url, etc.)
+//
+// Collections: static filtered subsets of a catalog, also accessed by slug.
+//
+// Syntax:  {% for item in <slug> %} {{ item.field_name }} {% endfor %}
+
+const COLLECTIONS = [
+  // ── Recommendations ──────────────────────────────────────────────────────
+  {
+    group: 'Recommendations (Item-based)',
+    label: 'Recommendation 14-Jan-2026',
+    value: 'i_recommendation_5',
+    hint: 'Item-based · catalog_19 · max 5 items',
+  },
+  {
+    group: 'Recommendations (User-based)',
+    label: 'test Recommendation',
+    value: 'u_recommendation_1',
+    hint: 'User-based · catalog_10 · max 5 items',
+  },
+  // ── Catalogs (direct loop over all catalog items) ─────────────────────────
+  { group: 'Catalogs', label: 'test',          value: 'catalog_20', hint: 'Catalog' },
+  { group: 'Catalogs', label: 'SnapMintJan26', value: 'catalog_19', hint: 'Catalog' },
+  { group: 'Catalogs', label: 'Snapmint',      value: 'catalog_13', hint: 'Catalog' },
+  { group: 'Catalogs', label: 'Test-catalog',  value: 'catalog_10', hint: 'Catalog' },
+  { group: 'Catalogs', label: 'abc',           value: 'catalog_9',  hint: 'Catalog' },
+  { group: 'Catalogs', label: 'ct1',           value: 'catalog_3',  hint: 'Catalog' },
+  // ── Derived Attributes (array type) ──────────────────────────────────────
+  { group: 'Derived Attributes', label: 'Favourite_Genre', value: 'user_derivedAttribute_762', hint: 'Derived · string' },
+  { group: 'Derived Attributes', label: 'Preferred_brand', value: 'user_derivedAttribute_700', hint: 'Derived · string' },
+];
+
+// ── Variable path builder ─────────────────────────────────────────────────────
+function buildVarPath(catKey, attrName) {
+  const cat = CATEGORIES.find(c => c.key === catKey);
+  if (!cat || !attrName) return 'undefined';
+  return `${cat.group}["${cat.sub}"]["${attrName}"]`;
+}
+
+// ── Token Picker HTML ─────────────────────────────────────────────────────────
+let pickerCount = 0;
+function tokenPickerHTML() {
+  const id = `tp_${pickerCount++}`;
+  const catOpts = CATEGORIES.map(c =>
+    `<option value="${c.key}">${c.label}</option>`
+  ).join('');
+  return `
+    <div class="token-picker" data-picker-id="${id}">
+      <select class="tp-cat" data-role="cat">
+        ${catOpts}
+      </select>
+      <div class="tp-search-wrap">
+        <input class="tp-search" data-role="search" placeholder="search attribute…" autocomplete="off">
+        <div class="tp-dropdown" data-role="dropdown"></div>
+      </div>
+      <input type="hidden" data-role="value">
+    </div>`;
+}
+
+function operatorSelectHTML() {
+  return `<select class="operator-select bg-slate-700 rounded px-1 py-0.5 text-xs border border-slate-600">
+    ${OPERATORS.map(o => `<option value="${o}">${o}</option>`).join('')}
+  </select>`;
+}
+
+function valueInputHTML() {
+  return `<input class="value-input bg-slate-700 rounded px-2 py-0.5 text-xs w-28 border border-slate-600" placeholder="value">`;
+}
+
+function conditionRowHTML() {
+  return `<div class="flex items-center gap-1 flex-wrap condition-row">
+    ${tokenPickerHTML()} ${operatorSelectHTML()} ${valueInputHTML()}
+  </div>`;
+}
+
+// ── Picker logic ──────────────────────────────────────────────────────────────
+function initPickers(root) {
+  root.querySelectorAll('.token-picker').forEach(picker => {
+    const catEl   = picker.querySelector('[data-role="cat"]');
+    const search  = picker.querySelector('[data-role="search"]');
+    const dropdown= picker.querySelector('[data-role="dropdown"]');
+    const hidden  = picker.querySelector('[data-role="value"]');
+
+    function getTokens() {
+      return TOKENS[catEl.value] || [];
+    }
+
+    function renderDropdown(filter = '') {
+      const tokens = getTokens();
+      const q = filter.toLowerCase();
+      const filtered = q ? tokens.filter(t => t.name.toLowerCase().includes(q) || (t.label||'').toLowerCase().includes(q)) : tokens;
+      if (!filtered.length) {
+        dropdown.innerHTML = '<div class="tp-item" style="color:#64748b">No results</div>';
+      } else {
+        const cat = CATEGORIES.find(c => c.key === catEl.value);
+        dropdown.innerHTML = `<div class="tp-group">${cat.label}</div>` +
+          filtered.map(t => `<div class="tp-item" data-name="${t.name}">${t.label || t.name}</div>`).join('');
+      }
+      dropdown.classList.add('open');
+    }
+
+    catEl.addEventListener('change', () => {
+      search.value = '';
+      hidden.value = '';
+      renderDropdown();
+      compile();
+    });
+
+    search.addEventListener('focus', () => renderDropdown(search.value));
+    search.addEventListener('input', () => { renderDropdown(search.value); compile(); });
+
+    dropdown.addEventListener('mousedown', e => {
+      const item = e.target.closest('.tp-item');
+      if (!item || !item.dataset.name) return;
+      e.preventDefault();
+      hidden.value  = item.dataset.name;
+      search.value  = item.dataset.name;
+      dropdown.classList.remove('open');
+      compile();
+    });
+
+    document.addEventListener('click', e => {
+      if (!picker.contains(e.target)) dropdown.classList.remove('open');
+    }, true);
+  });
+}
+
+// ── Block HTML templates ──────────────────────────────────────────────────────
+function ifHTML() {
+  return `
+    <div class="branch-header rounded p-2 space-y-2 bg-blue-950/20" data-branch-type="if">
+      <div class="flex items-center gap-1 flex-wrap">
+        <span class="text-blue-400 font-bold text-xs">IF</span>
+        ${conditionRowHTML()}
+      </div>
+      <div class="child-container space-y-2" data-branch="if"></div>
+      <div class="flex gap-2 mt-1">
+        <button class="add-child-btn px-2 py-0.5 bg-blue-700 hover:bg-blue-600 rounded text-xs" data-target="if" data-add="if">+ If</button>
+        <button class="add-child-btn px-2 py-0.5 bg-green-700 hover:bg-green-600 rounded text-xs" data-target="if" data-add="for">+ For</button>
+        <button class="add-child-btn px-2 py-0.5 bg-slate-600 hover:bg-slate-500 rounded text-xs" data-target="if" data-add="text">+ Text</button>
+      </div>
+    </div>
+    <div class="elif-branches space-y-2"></div>
+    <div class="flex gap-2 mt-1">
+      <button class="add-elif-btn px-2 py-0.5 bg-purple-700 hover:bg-purple-600 rounded text-xs">+ Elif</button>
+      <button class="add-else-btn px-2 py-0.5 bg-amber-700 hover:bg-amber-600 rounded text-xs">+ Else</button>
+    </div>
+    <div class="else-branch hidden space-y-2">
+      <div class="rounded p-2 space-y-2" style="border-left:3px solid #f59e0b;background:rgba(245,158,11,0.05)">
+        <span class="text-amber-400 font-bold text-xs">ELSE</span>
+        <div class="child-container space-y-2" data-branch="else"></div>
+        <div class="flex gap-2 mt-1">
+          <button class="add-child-btn px-2 py-0.5 bg-blue-700 hover:bg-blue-600 rounded text-xs" data-target="else" data-add="if">+ If</button>
+          <button class="add-child-btn px-2 py-0.5 bg-green-700 hover:bg-green-600 rounded text-xs" data-target="else" data-add="for">+ For</button>
+          <button class="add-child-btn px-2 py-0.5 bg-slate-600 hover:bg-slate-500 rounded text-xs" data-target="else" data-add="text">+ Text</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function forHTML() {
+  // Build grouped <optgroup> options
+  const groups = {};
+  COLLECTIONS.forEach(c => {
+    if (!groups[c.group]) groups[c.group] = [];
+    groups[c.group].push(c);
+  });
+  const collOpts = Object.entries(groups).map(([grp, items]) =>
+    `<optgroup label="${grp}">${items.map(c =>
+      `<option value="${c.value}" title="${c.hint}">${c.label}</option>`
+    ).join('')}</optgroup>`
+  ).join('');
+
+  return `
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-green-400 font-bold text-xs">FOR</span>
+      <input class="iterator-input bg-slate-700 rounded px-2 py-0.5 text-xs w-20 border border-slate-600" placeholder="item" value="item">
+      <span class="text-slate-400 text-xs">in</span>
+      <select class="collection-select bg-slate-700 rounded px-1 py-0.5 text-xs border border-slate-600 max-w-[200px]">
+        <option value="">-- select collection --</option>
+        ${collOpts}
+        <option value="__custom__">custom…</option>
+      </select>
+      <input class="collection-custom bg-slate-700 rounded px-2 py-0.5 text-xs w-36 border border-slate-600 hidden" placeholder="e.g. my_catalog_slug">
+    </div>
+    <div class="collection-hint text-slate-500 text-xs pl-1 hidden"></div>
+    <div class="child-container space-y-2" data-branch="for"></div>
+    <div class="flex gap-2 mt-1">
+      <button class="add-child-btn px-2 py-0.5 bg-blue-700 hover:bg-blue-600 rounded text-xs" data-target="for" data-add="if">+ If</button>
+      <button class="add-child-btn px-2 py-0.5 bg-green-700 hover:bg-green-600 rounded text-xs" data-target="for" data-add="for">+ For</button>
+      <button class="add-child-btn px-2 py-0.5 bg-slate-600 hover:bg-slate-500 rounded text-xs" data-target="for" data-add="text">+ Text</button>
+    </div>`;
+}
+
+function textHTML() {
+  return `<textarea class="content-textarea w-full bg-slate-700 rounded px-2 py-1.5 text-xs border border-slate-600 text-slate-100" placeholder="Enter text or {{ variable }}..."></textarea>`;
+}
+
+// ── Block factory ─────────────────────────────────────────────────────────────
+const rootContainer = document.getElementById('root-container');
+
+function addBlock(container, type) {
+  const el = document.createElement('div');
+  el.className = `block-${type} rounded-r-lg p-3 bg-slate-800 space-y-2`;
+  el.dataset.type = type;
+
+  if (type === 'if')        el.innerHTML = ifHTML();
+  else if (type === 'for')  el.innerHTML = forHTML();
+  else                      el.innerHTML = textHTML();
+
+  const removeBtn = document.createElement('button');
+  removeBtn.textContent = '✕';
+  removeBtn.className = 'float-right text-slate-500 hover:text-red-400 text-xs ml-2 -mt-1';
+  removeBtn.onclick = () => { el.remove(); compile(); };
+  el.prepend(removeBtn);
+
+  container.appendChild(el);
+  initPickers(el);
+  el.querySelectorAll('input,select,textarea').forEach(i => i.addEventListener('input', compile));
+  el.querySelectorAll('textarea').forEach(autoResize);
+
+  // collection custom toggle + hint
+  const colSel = el.querySelector('.collection-select');
+  const colCustom = el.querySelector('.collection-custom');
+  const colHint = el.querySelector('.collection-hint');
+  if (colSel) {
+    colSel.addEventListener('change', () => {
+      const isCustom = colSel.value === '__custom__';
+      colCustom.classList.toggle('hidden', !isCustom);
+      if (colHint) {
+        const found = COLLECTIONS.find(c => c.value === colSel.value);
+        if (found && !isCustom) {
+          const iter = el.querySelector('.iterator-input')?.value || 'item';
+          const hintText = `{{ ${iter}.field_name }}`;
+          colHint.innerHTML = `<span class="hint-text">ℹ️ ${found.hint} — inside loop use: <code class="text-green-400">${hintText}</code></span>
+            <button class="insert-hint-btn ml-2 px-1.5 py-0.5 bg-slate-600 hover:bg-slate-500 rounded text-xs text-slate-300">+ Add as Text</button>`;
+          colHint.classList.remove('hidden');
+        } else {
+          colHint.classList.add('hidden');
+        }
+      }
+      compile();
+    });
+  }
+
+  compile();
+}
+
+// ── Event delegation ──────────────────────────────────────────────────────────
+document.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+
+  if (btn.classList.contains('insert-hint-btn')) {
+    const blockEl = btn.closest('[data-type="for"]');
+    const iter = blockEl.querySelector('.iterator-input')?.value.trim() || 'item';
+    const child = blockEl.querySelector(':scope > .child-container[data-branch="for"]');
+    if (child) {
+      addBlock(child, 'text');
+      const ta = child.lastElementChild?.querySelector('.content-textarea');
+      if (ta) { ta.value = `{{ ${iter}.field_name }}`; ta.dispatchEvent(new Event('input')); }
+    }
+  }
+
+  if (btn.classList.contains('add-child-btn')) {
+    const target  = btn.dataset.target;
+    const addType = btn.dataset.add;
+    let ancestor = btn.parentElement;
+    while (ancestor) {
+      const c = ancestor.querySelector(`:scope > .child-container[data-branch="${target}"]`);
+      if (c) { addBlock(c, addType); break; }
+      ancestor = ancestor.parentElement;
+    }
+  }
+
+  if (btn.classList.contains('add-elif-btn')) {
+    const blockEl = btn.closest('[data-type="if"]');
+    addElifBranch(blockEl.querySelector(':scope > .elif-branches'));
+  }
+
+  if (btn.classList.contains('add-else-btn')) {
+    const blockEl = btn.closest('[data-type="if"]');
+    blockEl.querySelector(':scope > .else-branch')?.classList.remove('hidden');
+    compile();
+  }
+
+  if (btn.classList.contains('remove-elif-btn')) {
+    btn.closest('.elif-branch-wrapper').remove(); compile();
+  }
+});
+
+function addElifBranch(container) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'elif-branch-wrapper elif-branch rounded-r-lg p-2 space-y-2 bg-slate-800';
+  wrapper.innerHTML = `
+    <div class="flex items-center gap-1 flex-wrap">
+      <span class="text-purple-400 font-bold text-xs">ELIF</span>
+      ${conditionRowHTML()}
+      <button class="remove-elif-btn text-slate-500 hover:text-red-400 text-xs ml-auto">✕</button>
+    </div>
+    <div class="child-container space-y-2" data-branch="elif"></div>
+    <div class="flex gap-2 mt-1">
+      <button class="add-child-btn px-2 py-0.5 bg-blue-700 hover:bg-blue-600 rounded text-xs" data-target="elif" data-add="if">+ If</button>
+      <button class="add-child-btn px-2 py-0.5 bg-green-700 hover:bg-green-600 rounded text-xs" data-target="elif" data-add="for">+ For</button>
+      <button class="add-child-btn px-2 py-0.5 bg-slate-600 hover:bg-slate-500 rounded text-xs" data-target="elif" data-add="text">+ Text</button>
+    </div>`;
+  initPickers(wrapper);
+  wrapper.querySelectorAll('input,select').forEach(i => i.addEventListener('input', compile));
+  container.appendChild(wrapper);
+  compile();
+}
+
+// ── Auto-resize textarea ──────────────────────────────────────────────────────
+function autoResize(ta) {
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+  });
+}
+
+// ── Condition builder ─────────────────────────────────────────────────────────
+function buildConditionFromElem(el) {
+  const picker  = el.querySelector('.token-picker');
+  const catKey  = picker?.querySelector('[data-role="cat"]')?.value || 'userSystem';
+  const attrName= picker?.querySelector('[data-role="value"]')?.value?.trim() || '';
+  const op      = el.querySelector('.operator-select')?.value || '==';
+  const val     = el.querySelector('.value-input')?.value?.trim() || '';
+
+  const varPath = buildVarPath(catKey, attrName) ;
+
+  if (op === 'is defined')     return `${varPath} is defined`;
+  if (op === 'is not defined') return `${varPath} is not defined`;
+  if (op === 'contains')       return `${varPath} | contains("${val}")`;
+  const quotedVal = val !== '' && !isNaN(val) ? val : `"${val}"`;
+  return `${varPath} ${op} ${quotedVal}`;
+}
+
+// ── Compiler ──────────────────────────────────────────────────────────────────
+function compileContainer(container, depth) {
+  let out = '';
+  for (const block of container.children) {
+    if (block.dataset.type) out += compileBlock(block, depth);
+  }
+  return out;
+}
+
+function compileBlock(block, depth) {
+  const indent = '  '.repeat(depth);
+  const type   = block.dataset.type;
+
+  if (type === 'text') {
+    const val = block.querySelector('.content-textarea')?.value || '';
+    return val ? val.split('\n').map(l => indent + l).join('\n') + '\n' : '';
+  }
+
+  if (type === 'for') {
+    const iter    = block.querySelector('.iterator-input')?.value.trim() || 'item';
+    const colSel  = block.querySelector('.collection-select');
+    const colVal  = colSel?.value === '__custom__'
+      ? (block.querySelector('.collection-custom')?.value.trim() || 'items')
+      : (colSel?.value || 'items');
+    const child   = block.querySelector(':scope > .child-container[data-branch="for"]');
+    const body    = child ? compileContainer(child, depth + 1) : '';
+    return `${indent}{% for ${iter} in ${colVal} %}\n${body}${indent}{% endfor %}\n`;
+  }
+
+  if (type === 'if') {
+    let out = '';
+    const ifHeader = block.querySelector(':scope > div[data-branch-type="if"]');
+    const ifCond   = buildConditionFromElem(ifHeader);
+    const ifChild  = ifHeader?.querySelector(':scope > .child-container[data-branch="if"]');
+    out += `${indent}{% if ${ifCond} %}\n`;
+    out += ifChild ? compileContainer(ifChild, depth + 1) : '';
+
+    block.querySelectorAll(':scope > .elif-branches > .elif-branch-wrapper').forEach(ew => {
+      const cond  = buildConditionFromElem(ew);
+      const child = ew.querySelector(':scope > .child-container[data-branch="elif"]');
+      out += `${indent}{% elif ${cond} %}\n`;
+      out += child ? compileContainer(child, depth + 1) : '';
+    });
+
+    const elseBranch = block.querySelector(':scope > .else-branch');
+    if (elseBranch && !elseBranch.classList.contains('hidden')) {
+      const elseChild = elseBranch.querySelector('.child-container[data-branch="else"]');
+      out += `${indent}{% else %}\n`;
+      out += elseChild ? compileContainer(elseChild, depth + 1) : '';
+    }
+
+    out += `${indent}{% endif %}\n`;
+    return out;
+  }
+  return '';
+}
+
+function compile() {
+  const code = compileContainer(rootContainer, 0);
+  const outputEl = document.getElementById('output');
+  outputEl.textContent = code || '<!-- Add blocks above to generate Nunjucks -->';
+  hljs.highlightElement(outputEl);
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(document.getElementById('output').textContent).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+
+compile();
+</script>
+</body>
+</html>
