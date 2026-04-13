@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nunjucks Builder – WebEngage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e1117;--bg2:#151b25;--bg3:#1c2333;
+  --border:#2a3548;--border2:#364056;
+  --text:#cdd6f4;--text2:#8892a4;--text3:#556070;
+  --accent:#7aa2f7;--green:#9ece6a;--teal:#2ac3de;
+  --orange:#ff9e64;--rose:#f7768e;--purple:#bb9af7;--yellow:#e0af68;
+  --if-c:#7aa2f7;--for-c:#9ece6a;--set-c:#bb9af7;
+  --text-c:#565f89;--rec-c:#2ac3de;--soc-c:#ff9e64;--grid-c:#f7768e;
+  --r:8px;--rs:5px;
+  font-family:'DM Sans',sans-serif;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-size:13px;overflow:hidden}
+.app{display:flex;height:100vh}
+/* ── left panel ── */
+.lpanel{width:228px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.lhdr{padding:15px 14px 11px;border-bottom:1px solid var(--border)}
+.lhdr h1{font-size:15px;font-weight:700;letter-spacing:-.02em;color:#fff}
+.lhdr p{font-size:10px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.palette{flex:1;overflow-y:auto;padding:10px 8px}
+.pal-sec{margin-bottom:16px}
+.pal-lbl{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:0 6px;margin-bottom:5px;display:block}
+.pal-btn{display:flex;align-items:center;gap:9px;width:100%;padding:7px 10px;border-radius:var(--rs);border:1px solid transparent;background:transparent;color:var(--text);cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;transition:background .12s,border-color .12s;margin-bottom:2px}
+.pal-btn:hover{background:var(--bg3);border-color:var(--border)}
+.pal-icon{font-size:15px;line-height:1;width:20px;text-align:center;flex-shrink:0}
+.pal-text{flex:1}.pal-name{display:block}.pal-hint{display:block;font-size:10px;color:var(--text3);font-weight:400;margin-top:1px}
+.pal-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+[data-type=if]   .pal-dot{background:var(--if-c)}
+[data-type=for]  .pal-dot{background:var(--for-c)}
+[data-type=set]  .pal-dot{background:var(--set-c)}
+[data-type=text] .pal-dot{background:var(--text-c)}
+[data-type=rec]  .pal-dot{background:var(--rec-c)}
+[data-type=social].pal-dot{background:var(--soc-c)}
+[data-type=grid] .pal-dot{background:var(--grid-c)}
+.pal-div{height:1px;background:var(--border);margin:4px 6px 10px}
+.preset-btn{display:block;width:100%;padding:7px 10px;border-radius:var(--rs);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:11px;transition:all .12s;margin-bottom:4px}
+.preset-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.preset-btn span{display:block;font-size:10px;color:var(--text3);margin-top:1px}
+/* ── center panel ── */
+.cpanel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.chdr{padding:9px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--bg2);flex-shrink:0}
+.ctitle{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.05em;text-transform:uppercase;flex:1}
+.c-act-btn{padding:3px 10px;border-radius:var(--rs);border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;transition:all .12s}
+.c-act-btn:hover{background:var(--bg3);color:var(--text)}
+.cscroll{flex:1;overflow-y:auto;padding:14px}
+#root{min-height:100%}
+.cempty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;gap:10px;color:var(--text3);text-align:center;border:2px dashed var(--border);border-radius:var(--r);padding:36px}
+.cempty .ce-ico{font-size:32px;opacity:.5}
+.cempty p{font-size:12px;line-height:1.7}
+/* ── right panel ── */
+.rpanel{width:370px;flex-shrink:0;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.ohdr{padding:9px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.otitle{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);flex:1}
+.o-btn{padding:4px 12px;border-radius:var(--rs);border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all .12s}
+.o-btn:hover{background:var(--bg3);color:var(--text)}
+.o-btn.primary{background:rgba(122,162,247,.14);color:var(--accent);border-color:rgba(122,162,247,.3)}
+.o-btn.primary:hover{background:rgba(122,162,247,.24)}
+.obody{flex:1;overflow-y:auto;padding:12px 14px}
+.obody pre{margin:0}
+.obody code{font-family:'JetBrains Mono',monospace!important;font-size:11px!important;line-height:1.65!important}
+.hljs{background:transparent!important;padding:0!important}
+/* ── block cards ── */
+.bwrap{margin-bottom:8px}
+.bcard{border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);position:relative}
+.bcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:var(--r) 0 0 var(--r)}
+.block-if   .bcard::before{background:var(--if-c)}
+.block-for  .bcard::before{background:var(--for-c)}
+.block-set  .bcard::before{background:var(--set-c)}
+.block-text .bcard::before{background:var(--text-c)}
+.block-rec  .bcard::before{background:var(--rec-c)}
+.block-social.bcard::before{background:var(--soc-c)}
+.block-grid .bcard::before{background:var(--grid-c)}
+.bhdr{display:flex;align-items:center;gap:8px;padding:8px 10px 8px 14px;border-bottom:1px solid var(--border)}
+.bbadge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.06em;padding:2px 7px;border-radius:3px;text-transform:uppercase;flex-shrink:0}
+.badge-if    {background:rgba(122,162,247,.15);color:var(--if-c)}
+.badge-for   {background:rgba(158,206,106,.15);color:var(--for-c)}
+.badge-set   {background:rgba(187,154,247,.15);color:var(--set-c)}
+.badge-text  {background:rgba(86,95,137,.2);color:#737aa2}
+.badge-rec   {background:rgba(42,195,222,.12);color:var(--rec-c)}
+.badge-social{background:rgba(255,158,100,.12);color:var(--soc-c)}
+.badge-grid  {background:rgba(247,118,142,.12);color:var(--grid-c)}
+.blbl{flex:1;font-size:11px;color:var(--text2);font-weight:500}
+.bctrl{display:flex;gap:3px;align-items:center}
+.ibtn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 5px;border-radius:3px;line-height:1;transition:color .1s,background .1s;font-family:'DM Sans',sans-serif}
+.ibtn:hover{color:var(--text);background:var(--bg2)}
+.ibtn.del:hover{color:var(--rose)}
+.bbody{padding:10px 12px 12px 14px}
+.bbody.collapsed{display:none}
+/* ── form ── */
+.frow{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.frow:last-child{margin-bottom:0}
+.flbl{font-size:11px;color:var(--text3);white-space:nowrap;min-width:70px}
+.ctrl{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 8px;outline:none;transition:border-color .12s}
+.ctrl:focus{border-color:var(--accent)}
+select.ctrl{cursor:pointer}
+textarea.ctrl{resize:none;overflow:hidden;min-height:52px;width:100%;line-height:1.5}
+/* ── token picker ── */
+.tpick{position:relative;display:inline-flex;align-items:center}
+.tp-cat{background:var(--bg2);border:1px solid var(--border);border-right:none;border-radius:var(--rs) 0 0 var(--rs);color:var(--text3);font-family:'DM Sans',sans-serif;font-size:10px;padding:4px 5px;cursor:pointer;white-space:nowrap}
+.tp-wrap{position:relative}
+.tp-srch{background:var(--bg2);border:1px solid var(--border);border-radius:0 var(--rs) var(--rs) 0;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 8px;width:155px;outline:none;transition:border-color .12s}
+.tp-srch:focus{border-color:var(--accent)}
+.tp-dd{position:absolute;top:calc(100% + 3px);left:0;z-index:999;min-width:240px;max-height:220px;overflow-y:auto;background:var(--bg);border:1px solid var(--border2);border-radius:var(--rs);box-shadow:0 8px 30px rgba(0,0,0,.5);display:none}
+.tp-dd.open{display:block}
+.tp-grp{padding:5px 10px 2px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-family:'DM Sans',sans-serif}
+.tp-item{padding:5px 12px;font-size:11px;color:var(--text2);cursor:pointer;font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp-item:hover{background:var(--bg3);color:var(--text)}
+/* ── child area ── */
+.child-area{margin-top:9px;border-radius:var(--rs);background:rgba(0,0,0,.2);border:1px dashed var(--border);padding:8px;min-height:40px}
+.child-lbl{font-size:10px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;font-weight:600}
+.add-row{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.acb{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;border:none;cursor:pointer;opacity:.75;transition:opacity .1s}
+.acb:hover{opacity:1}
+.acb-if  {background:rgba(122,162,247,.2);color:var(--if-c)}
+.acb-for {background:rgba(158,206,106,.15);color:var(--for-c)}
+.acb-text{background:rgba(86,95,137,.2);color:#737aa2}
+.acb-set {background:rgba(187,154,247,.15);color:var(--set-c)}
+/* ── elif/else ── */
+.elif-blk{border-left:2px solid var(--purple);background:rgba(187,154,247,.04);border-radius:0 var(--rs) var(--rs) 0;padding:8px 10px;margin-top:6px}
+.else-blk{border-left:2px solid var(--yellow);background:rgba(224,175,104,.04);border-radius:0 var(--rs) var(--rs) 0;padding:8px 10px;margin-top:6px}
+.btag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:3px;text-transform:uppercase}
+.btag-elif{background:rgba(187,154,247,.15);color:var(--purple)}
+.btag-else{background:rgba(224,175,104,.15);color:var(--yellow)}
+.elif-hdr{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.bab-row{display:flex;gap:6px;margin-top:9px}
+.bab{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;border:none;cursor:pointer;opacity:.8;transition:opacity .1s}
+.bab:hover{opacity:1}
+.bab-elif{background:rgba(187,154,247,.2);color:var(--purple)}
+.bab-else{background:rgba(224,175,104,.2);color:var(--yellow)}
+/* ── condition ── */
+.cond-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.cond-ao{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 6px;background:rgba(187,154,247,.15);color:var(--purple);border:none;border-radius:4px;cursor:pointer;font-weight:600}
+.cond-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:1px 4px;border-radius:3px;line-height:1}
+.cond-del:hover{color:var(--rose)}
+.add-cond{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;border:none;cursor:pointer;background:rgba(122,162,247,.14);color:var(--if-c);opacity:.8;transition:opacity .1s;margin-top:4px;display:inline-block}
+.add-cond:hover{opacity:1}
+/* ── set tabs ── */
+.set-tabs{display:flex;gap:2px;margin-bottom:8px}
+.stab{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;padding:3px 10px;border-radius:4px;border:none;cursor:pointer;background:var(--bg2);color:var(--text3);transition:all .12s}
+.stab.on{background:rgba(187,154,247,.2);color:var(--set-c)}
+/* ── rec config ── */
+.rec-cfg{background:rgba(42,195,222,.05);border:1px solid rgba(42,195,222,.15);border-radius:var(--rs);padding:10px 12px;margin-bottom:10px}
+.rcfg-ttl{font-size:11px;font-weight:600;color:var(--rec-c);margin-bottom:8px}
+.chk-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.chk-row input{accent-color:var(--rec-c);cursor:pointer}
+.chk-row label{font-size:11px;color:var(--text2);cursor:pointer}
+.chk-hint{font-size:10px;color:var(--text3)}
+/* ── grid config ── */
+.grid-cfg{background:rgba(247,118,142,.05);border:1px solid rgba(247,118,142,.2);border-radius:var(--rs);padding:10px 12px;margin-bottom:10px}
+.gcfg-ttl{font-size:11px;font-weight:600;color:var(--grid-c);margin-bottom:8px}
+.fpill{display:inline-flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 8px;border-radius:3px;background:rgba(247,118,142,.12);color:var(--grid-c);margin:2px}
+.fpill .fp-del{background:none;border:none;cursor:pointer;color:rgba(247,118,142,.5);font-size:12px;line-height:1;padding:0}
+.fpill .fp-del:hover{color:var(--rose)}
+.fields-wrap{margin-bottom:7px;min-height:28px}
+/* ── social ── */
+.soc-row{border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:7px}
+.soc-row:last-child{margin-bottom:0}
+.soc-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cflag{font-size:17px}
+.cname{font-size:12px;font-weight:600}
+.cbadge{font-family:'JetBrains Mono',monospace;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:auto}
+.cbadge-if  {background:rgba(122,162,247,.15);color:var(--if-c)}
+.cbadge-elif{background:rgba(187,154,247,.15);color:var(--purple)}
+.cbadge-else{background:rgba(224,175,104,.15);color:var(--yellow)}
+.soc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.soc-field label{display:block;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;font-weight:600}
+.add-cntry{width:100%;padding:6px;border:1px dashed var(--border2);background:transparent;color:var(--text3);border-radius:var(--rs);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;transition:all .12s;margin-top:5px}
+.add-cntry:hover{background:var(--bg3);color:var(--text2)}
+.del-cntry{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px 5px;border-radius:3px}
+.del-cntry:hover{color:var(--rose)}
+/* ── info box ── */
+.ibox{background:rgba(122,162,247,.07);border:1px solid rgba(122,162,247,.15);border-radius:var(--rs);padding:7px 10px;font-size:11px;color:var(--text2);margin-bottom:9px;line-height:1.6}
+.ibox code,.mono{font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(122,162,247,.12);padding:1px 5px;border-radius:3px;color:var(--accent)}
+.sep{height:1px;background:var(--border);margin:7px 0}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- LEFT -->
+<aside class="lpanel">
+  <div class="lhdr">
+    <h1>Nunjucks Builder</h1>
+    <p>WebEngage · Personalization</p>
+  </div>
+  <div class="palette">
+    <div class="pal-sec">
+      <span class="pal-lbl">Logic Blocks</span>
+      <button class="pal-btn" data-type="if"   onclick="rootAdd('if')">
+        <span class="pal-icon">🔀</span><span class="pal-text"><span class="pal-name">IF / ELIF / ELSE</span><span class="pal-hint">Conditional branch</span></span><span class="pal-dot"></span>
+      </button>
+      <button class="pal-btn" data-type="for"  onclick="rootAdd('for')">
+        <span class="pal-icon">🔁</span><span class="pal-text"><span class="pal-name">FOR Loop</span><span class="pal-hint">Iterate a catalog or array</span></span><span class="pal-dot"></span>
+      </button>
+      <button class="pal-btn" data-type="set"  onclick="rootAdd('set')">
+        <span class="pal-icon">📌</span><span class="pal-text"><span class="pal-name">SET Variable</span><span class="pal-hint">Token, date filter, or value</span></span><span class="pal-dot"></span>
+      </button>
+    </div>
+    <div class="pal-sec">
+      <span class="pal-lbl">Smart Presets</span>
+      <button class="pal-btn" data-type="rec"    onclick="rootAdd('rec')">
+        <span class="pal-icon">🎯</span><span class="pal-text"><span class="pal-name">Recommendation</span><span class="pal-hint">xargs + fail-guard + loop</span></span><span class="pal-dot"></span>
+      </button>
+      <button class="pal-btn" data-type="grid"   onclick="rootAdd('grid')">
+        <span class="pal-icon">🃏</span><span class="pal-text"><span class="pal-name">2-Col Card Grid</span><span class="pal-hint">left / right pair loop</span></span><span class="pal-dot"></span>
+      </button>
+      <button class="pal-btn" data-type="social" onclick="rootAdd('social')">
+        <span class="pal-icon">🌐</span><span class="pal-text"><span class="pal-name">Social URLs</span><span class="pal-hint">Country-based if/elif/else</span></span><span class="pal-dot"></span>
+      </button>
+    </div>
+    <div class="pal-sec">
+      <span class="pal-lbl">Content</span>
+      <button class="pal-btn" data-type="text" onclick="rootAdd('text')">
+        <span class="pal-icon">✏️</span><span class="pal-text"><span class="pal-name">Text / HTML</span><span class="pal-hint">Raw content + token inserter</span></span><span class="pal-dot"></span>
+      </button>
+    </div>
+    <div class="pal-div"></div>
+    <div class="pal-sec">
+      <span class="pal-lbl">Quick Start</span>
+      <button class="preset-btn" onclick="loadPreset('rec_email')">🎯 Full recommendation email<span>Rec + card grid + social footer</span></button>
+      <button class="preset-btn" onclick="loadPreset('greeting')">👋 Personalised greeting<span>SET first name with fallback</span></button>
+      <button class="preset-btn" onclick="loadPreset('geo')">🗺️ Geo-personalised content<span>Country IF / ELIF / ELSE</span></button>
+    </div>
+  </div>
+</aside>
+
+<!-- CENTER -->
+<main class="cpanel">
+  <div class="chdr">
+    <span class="ctitle">Template Canvas</span>
+    <button class="c-act-btn" onclick="collapseAll()">Collapse all</button>
+    <button class="c-act-btn" onclick="expandAll()">Expand all</button>
+    <button class="c-act-btn" onclick="clearAll()">Clear</button>
+  </div>
+  <div class="cscroll">
+    <div id="root">
+      <div class="cempty" id="cempty">
+        <div class="ce-ico">🧩</div>
+        <p>Pick a block from the left panel<br>or start with a <strong>Quick Start</strong> preset.<br><br>Output compiles live →</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- RIGHT -->
+<aside class="rpanel">
+  <div class="ohdr">
+    <span class="otitle">Generated Nunjucks</span>
+    <button class="o-btn primary" id="copy-btn" onclick="copyCode()">Copy</button>
+  </div>
+  <div class="obody">
+    <pre><code id="output" class="language-twig"></code></pre>
+  </div>
+</aside>
+</div>
+
+<script>
+'use strict';
+// ══════════════════════════════ DATA ══════════════════════════════
+const TOKENS = {
+  userSystem:[
+    {name:'first_name',label:'First Name'},{name:'last_name',label:'Last Name'},
+    {name:'birth_date',label:'Date of Birth'},{name:'phone',label:'Phone Number'},
+    {name:'hashed_phone',label:'Hashed Phone'},{name:'gender',label:'Gender'},
+    {name:'email',label:'Email Address'},{name:'hashed_email',label:'Hashed Email'},
+    {name:'company',label:'Company'},{name:'tz_name',label:'Time Zone'},
+    {name:'cuid',label:'User ID (cuid)'},
+  ],
+  userCustom:[
+    {name:'City of Interest'},{name:'Country of Interest'},{name:'Country'},
+    {name:'c_sdk_type'},{name:'postal_code'},{name:'address'},{name:'age'},{name:'Age'},
+    {name:'Theme'},{name:'mobile'},{name:'Person Type'},{name:'Subscribed to email'},
+    {name:'NumberOfItems'},{name:'userId'},{name:'state'},{name:'utm_source'},
+    {name:'isCartItemPresent'},{name:'Twitter username'},{name:'previousPurchasedAMCPlan'},
+  ],
+  eventCustom:[
+    {name:'Genre 1'},{name:'Genre 2'},{name:'Nationality 1'},{name:'Nationality 2'},
+    {name:'Broad Type 1'},{name:'Broad Type 2'},{name:'Festive/Sport/Gaming'},
+    {name:'Added to Cart'},{name:'Item purchased'},{name:'Order Placed'},
+    {name:'Product Details Viewed'},{name:'Cart Updated'},
+    {name:'search_flight'},{name:'book_flight'},{name:'App Opened'},{name:'Register'},
+  ],
+};
+const CATS=[
+  {key:'userSystem',label:'User · System', group:'user', sub:'system'},
+  {key:'userCustom',label:'User · Custom', group:'user', sub:'custom'},
+  {key:'eventCustom',label:'Event · Custom',group:'event',sub:'custom'},
+];
+const OPS=['==','!=','>','<','>=','<=','contains','is defined','is not defined'];
+const DATE_FMTS=[
+  {v:'MMMM',l:'Month name — January'},{v:'MMM',l:'Short month — Jan'},
+  {v:'DD',l:'Day — 01'},{v:'YYYY',l:'Year — 2025'},{v:'DD/MM/YYYY',l:'Full date'},
+];
+const COLLECTIONS=[
+  {group:'Recommendations (Item)',label:'Recommendation 14-Jan-2026',value:'i_recommendation_5',hint:'Item-based · max 5'},
+  {group:'Recommendations (User)',label:'test Recommendation',value:'u_recommendation_1',hint:'User-based · max 5'},
+  {group:'Catalogs',label:'test',value:'catalog_20',hint:'Catalog'},
+  {group:'Catalogs',label:'SnapMintJan26',value:'catalog_19',hint:'Catalog'},
+  {group:'Catalogs',label:'Snapmint',value:'catalog_13',hint:'Catalog'},
+  {group:'Catalogs',label:'Test-catalog',value:'catalog_10',hint:'Catalog'},
+  {group:'Catalogs',label:'abc',value:'catalog_9',hint:'Catalog'},
+  {group:'Derived',label:'Favourite_Genre',value:'user_derivedAttribute_762',hint:'Derived'},
+  {group:'Derived',label:'Preferred_brand',value:'user_derivedAttribute_700',hint:'Derived'},
+];
+const REC_SLUGS=[
+  {v:'c_recommendation_298',l:'c_recommendation_298'},
+  {v:'c_recommendation_100',l:'c_recommendation_100'},
+  {v:'c_recommendation_50', l:'c_recommendation_50'},
+];
+const CAT_FIELDS=['url','mobile_image_url_en','event_date','title','price','description','category','image_url','name','brand','rating'];
+const SOC_PLAT=[
+  {key:'ig',label:'Instagram'},{key:'snap',label:'Snapchat'},
+  {key:'fb',label:'Facebook'},{key:'tiktok',label:'TikTok'},
+  {key:'x',label:'X/Twitter'},{key:'threads',label:'Threads'},
+];
+
+// ══════════════════════════════ STATE ══════════════════════════
+let _id=0, _pc=0;
+const nid=()=>`b${_id++}`;
+const npc=()=>`p${_pc++}`;
+const root=document.getElementById('root');
+const cempty=document.getElementById('cempty');
+
+// ══════════════════════════════ UTILS ══════════════════════════
+function buildPath(catKey,attr){
+  const cat=CATS.find(c=>c.key===catKey);
+  if(!cat||!attr.trim()) return '...';
+  return `${cat.group}["${cat.sub}"]["${attr}"]`;
+}
+function colOpts(){
+  const grps={};
+  COLLECTIONS.forEach(c=>{(grps[c.group]=grps[c.group]||[]).push(c)});
+  return `<option value="">— select —</option>`+
+    Object.entries(grps).map(([g,items])=>`<optgroup label="${g}">${items.map(i=>`<option value="${i.value}" data-hint="${i.hint}">${i.label}</option>`).join('')}</optgroup>`).join('')+
+    `<option value="__custom__">✏️ custom…</option>`;
+}
+function recSlugOpts(){
+  return REC_SLUGS.map(r=>`<option value="${r.v}">${r.l}</option>`).join('')+`<option value="__custom__">✏️ custom…</option>`;
+}
+function autoResize(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px'}
+function syncEmpty(){
+  cempty.style.display=root.querySelectorAll('[data-bid]').length>0?'none':'flex';
+}
+function wireInputs(el){
+  el.querySelectorAll('textarea.ctrl').forEach(ta=>{
+    autoResize(ta);ta.addEventListener('input',()=>{autoResize(ta);compile()});
+  });
+  el.querySelectorAll('input:not([type=checkbox]):not([type=hidden]),select').forEach(i=>i.addEventListener('input',compile));
+  el.querySelectorAll('input[type=checkbox]').forEach(i=>i.addEventListener('change',compile));
+}
+
+// ══════════════════════════════ TOKEN PICKER ═══════════════════
+function mkPicker(){
+  const pid=npc();
+  return `<div class="tpick" data-pid="${pid}">
+    <select class="tp-cat" data-role="cat">${CATS.map(c=>`<option value="${c.key}">${c.label}</option>`).join('')}</select>
+    <div class="tp-wrap">
+      <input class="tp-srch" data-role="srch" placeholder="search attribute…" autocomplete="off">
+      <div class="tp-dd" data-role="dd"></div>
+    </div>
+    <input type="hidden" data-role="val">
+  </div>`;
+}
+function initPicker(p){
+  if(p.dataset.init) return; p.dataset.init='1';
+  const cat=p.querySelector('[data-role=cat]');
+  const srch=p.querySelector('[data-role=srch]');
+  const dd=p.querySelector('[data-role=dd]');
+  const hid=p.querySelector('[data-role=val]');
+  function toks(){return TOKENS[cat.value]||[]}
+  function render(q=''){
+    const fl=q?toks().filter(t=>(t.name+(t.label||'')).toLowerCase().includes(q.toLowerCase())):toks();
+    const c=CATS.find(c=>c.key===cat.value);
+    dd.innerHTML=`<div class="tp-grp">${c.label}</div>`+
+      (fl.length?fl.map(t=>`<div class="tp-item" data-name="${t.name}">${t.label||t.name}</div>`).join(''):'<div class="tp-item" style="color:var(--text3)">No results</div>');
+    dd.classList.add('open');
+  }
+  cat.addEventListener('change',()=>{srch.value='';hid.value='';render();compile()});
+  srch.addEventListener('focus',()=>render(srch.value));
+  srch.addEventListener('input',()=>{render(srch.value);compile()});
+  dd.addEventListener('mousedown',e=>{
+    const item=e.target.closest('.tp-item');
+    if(!item||!item.dataset.name) return;
+    e.preventDefault();hid.value=item.dataset.name;srch.value=item.dataset.name;
+    dd.classList.remove('open');compile();
+  });
+  document.addEventListener('click',e=>{if(!p.contains(e.target))dd.classList.remove('open')},true);
+}
+function initPickers(el){el.querySelectorAll('.tpick:not([data-init])').forEach(initPicker)}
+
+// ══════════════════════════════ CONDITIONS ═════════════════════
+function mkCondRow(first){
+  const opOpts=OPS.map(o=>`<option value="${o}">${o}</option>`).join('');
+  return `<div class="cond-row">
+    ${!first?`<button class="cond-ao" onclick="this.textContent=this.textContent==='AND'?'OR':'AND';compile()">AND</button>`:''}
+    ${mkPicker()}
+    <select class="ctrl operator-select" style="font-size:11px;padding:3px 6px;">${opOpts}</select>
+    <input class="ctrl value-input" style="width:95px;" placeholder="value">
+    ${!first?`<button class="cond-del" onclick="this.closest('.cond-row').remove();compile()">✕</button>`:''}
+  </div>`;
+}
+function addCond(btn){
+  const block=btn.closest('[data-bid],[data-elif]');
+  const rows=block.querySelector('.cond-rows');
+  const d=document.createElement('div');d.innerHTML=mkCondRow(false);
+  const el=d.firstElementChild;rows.appendChild(el);
+  initPickers(el);wireInputs(el);compile();
+}
+function buildConds(condRows){
+  if(!condRows) return 'true';
+  const rows=[...condRows.querySelectorAll('.cond-row')];
+  if(!rows.length) return 'true';
+  return rows.map((row,i)=>{
+    const ao=row.querySelector('.cond-ao')?.textContent?.trim().toLowerCase()||'and';
+    const p=row.querySelector('.tpick');
+    const cat=p?.querySelector('[data-role=cat]')?.value||'userSystem';
+    const attr=p?.querySelector('[data-role=val]')?.value?.trim()||'';
+    const op=row.querySelector('.operator-select')?.value||'==';
+    const val=row.querySelector('.value-input')?.value?.trim()||'';
+    const path=buildPath(cat,attr);
+    let cond;
+    if(op==='is defined') cond=`${path} is defined`;
+    else if(op==='is not defined') cond=`${path} is not defined`;
+    else if(op==='contains') cond=`${path} | contains("${val}")`;
+    else{const qv=val!==''&&!isNaN(val)?val:`"${val}"`;cond=`${path} ${op} ${qv}`}
+    return i===0?cond:`${ao} ${cond}`;
+  }).join(' ');
+}
+
+// ══════════════════════════════ CHILD AREA ═════════════════════
+function mkChild(label,slot,withSet=true){
+  const s=withSet?`<button class="acb acb-set" data-add="set" data-slot="${slot}">+ Set</button>`:'';
+  return `<div class="child-area" data-slot="${slot}">
+    <div class="child-lbl">${label}</div>
+    <div class="child-cont" data-cont="${slot}"></div>
+    <div class="add-row">
+      <button class="acb acb-if"   data-add="if"   data-slot="${slot}">+ If</button>
+      <button class="acb acb-for"  data-add="for"  data-slot="${slot}">+ For</button>
+      <button class="acb acb-text" data-add="text" data-slot="${slot}">+ Text</button>
+      ${s}
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════ BLOCK TEMPLATES ════════════════
+function mkIF(bid){
+  return `<div class="bwrap block-if" data-bid="${bid}" data-type="if">
+  <div class="bcard">
+    <div class="bhdr">
+      <span class="bbadge badge-if">IF</span>
+      <span class="blbl">Conditional</span>
+      <div class="bctrl">
+        <button class="ibtn" onclick="toggleC('${bid}')">▾</button>
+        <button class="ibtn del" onclick="removeBlock('${bid}')">✕</button>
+      </div>
+    </div>
+    <div class="bbody" data-body="${bid}">
+      <div class="cond-rows" data-btype="if">${mkCondRow(true)}</div>
+      <button class="add-cond" onclick="addCond(this)">+ AND condition</button>
+      ${mkChild('THEN',`if_${bid}`)}
+      <div class="elif-list"></div>
+      <div class="bab-row">
+        <button class="bab bab-elif" onclick="addElif(this)">+ Elif</button>
+        <button class="bab bab-else" onclick="addElse(this)">+ Else</button>
+      </div>
+      <div class="else-wrap" style="display:none;"></div>
+    </div>
+  </div>
+</div>`;
+}
+
+function mkFOR(bid){
+  return `<div class="bwrap block-for" data-bid="${bid}" data-type="for">
+  <div class="bcard">
+    <div class="bhdr">
+      <span class="bbadge badge-for">FOR</span>
+      <span class="blbl">Loop</span>
+      <div class="bctrl">
+        <button class="ibtn" onclick="toggleC('${bid}')">▾</button>
+        <button class="ibtn del" onclick="removeBlock('${bid}')">✕</button>
+      </div>
+    </div>
+    <div class="bbody" data-body="${bid}">
+      <div class="frow">
+        <span class="flbl">Iterator</span>
+        <input class="ctrl for-iter" style="width:75px;" value="item" placeholder="item">
+        <span style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;">in</span>
+        <select class="ctrl for-col">${colOpts()}</select>
+        <input class="ctrl for-col-cust" style="width:130px;display:none;" placeholder="custom_slug">
+      </div>
+      <div class="for-hint" style="display:none;margin-bottom:7px;"></div>
+      ${mkChild('LOOP BODY',`for_${bid}`)}
+    </div>
+  </div>
+</div>`;
+}
+
+function mkSET(bid){
+  const dfOpts=DATE_FMTS.map(f=>`<option value="${f.v}">${f.l}</option>`).join('');
+  return `<div class="bwrap block-set" data-bid="${bid}" data-type="set">
+  <div class="bcard">
+    <div class="bhdr">
+      <span class="bbadge badge-set">SET</span>
+      <span class="blbl">Variable</span>
+      <div class="bctrl">
+        <button class="ibtn" onclick="toggleC('${bid}')">▾</button>
+        <button class="ibtn del" onclick="removeBlock('${bid}')">✕</button>
+      </div>
+    </div>
+    <div class="bbody" data-body="${bid}">
+      <div class="frow">
+        <span class="flbl">Name</span>
+        <input class="ctrl set-name" style="width:130px;" placeholder="myVar">
+      </div>
+      <div class="frow" style="align-items:flex-start;">
+        <span class="flbl" style="padding-top:5px;">Value</span>
+        <div style="flex:1;">
+          <div class="set-tabs">
+            <button class="stab on" onclick="setMode(this,'tok')">Token</button>
+            <button class="stab" onclick="setMode(this,'static')">Static</button>
+            <button class="stab" onclick="setMode(this,'date')">Date filter</button>
+            <button class="stab" onclick="setMode(this,'expr')">Expression</button>
+          </div>
+          <div class="set-panel" data-panel="tok">
+            ${mkPicker()}
+            <div class="frow" style="margin-top:6px;">
+              <span class="flbl" style="font-size:10px;">Fallback</span>
+              <input class="ctrl set-def" style="width:120px;" placeholder="default value (optional)">
+            </div>
+          </div>
+          <div class="set-panel" data-panel="static" style="display:none;">
+            <input class="ctrl set-static" style="width:100%;" placeholder="Enter value">
+          </div>
+          <div class="set-panel" data-panel="date" style="display:none;">
+            <div class="ibox">Uses <code>we_date</code> — WebEngage current date at send time.</div>
+            <div class="frow">
+              <span class="flbl">Format</span>
+              <select class="ctrl set-datefmt">${dfOpts}</select>
+            </div>
+          </div>
+          <div class="set-panel" data-panel="expr" style="display:none;">
+            <textarea class="ctrl set-expr" placeholder="e.g. arr.concat(firstArr)"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function mkTEXT(bid){
+  return `<div class="bwrap block-text" data-bid="${bid}" data-type="text">
+  <div class="bcard">
+    <div class="bhdr">
+      <span class="bbadge badge-text">TEXT</span>
+      <span class="blbl">Text / HTML</span>
+      <div class="bctrl">
+        <button class="ibtn" onclick="toggleC('${bid}')">▾</button>
+        <button class="ibtn del" onclick="removeBlock('${bid}')">✕</button>
+      </div>
+    </div>
+    <div class="bbody" data-body="${bid}">
+      <div class="frow" style="margin-bottom:7px;">
+        <span class="flbl" style="font-size:10px;color:var(--text3);">Insert token</span>
+        ${mkPicker()}
+        <button class="ibtn" style="background:rgba(158,206,106,.12);color:var(--green);border:1px solid rgba(158,206,106,.2);" onclick="insertToken(this)" title="Stamp token into textarea">→ Insert</button>
+      </div>
+      <textarea class="ctrl content-ta" style="width:100%;min-height:80px;" placeholder="Enter HTML or text. Use {{ user[&quot;system&quot;][&quot;first_name&quot;] }} directly or use the picker above."></textarea>
+    </div>
+  </div>
+</div>`;
+}
+
+function mkREC(bid){
+  return `<div class="bwrap block-rec" data-bid="${bid}" data-type="rec">
+  <div class="bcard">
+    <div class="bhdr">
+      <span class="bbadge badge-rec">REC</span>
+      <span class="blbl">Recommendation — xargs + fail-guard + loop</span>
+      <div class="bctrl">
+        <button class="ibtn" onclick="toggleC('${bid}')">▾</button>
+        <button class="ibtn del" onclick="removeBlock('${bid}')">✕</button>
+      </div>
+    </div>
+    <div class="bbody" data-body="${bid}">
+      <div class="rec-cfg">
+        <div class="rcfg-ttl">⚙️ Configuration</div>
+        <div class="frow">
+          <span class="flbl">Rec slug</span>
+          <select class="ctrl rec-slug">${recSlugOpts()}</select>
+          <input class="ctrl rec-slug-cust" style="width:155px;display:none;" placeholder="c_recommendation_XXX">
+        </div>
+        <div class="frow">
+          <span class="flbl">Iterator</span>
+          <input class="ctrl rec-iter" value="item" style="width:75px;">
+          <span style="font-size:10px;color:var(--text3);margin-left:3px;">use <code class="mono">{{ item.url }}</code> etc. inside loop</span>
+        </div>
+        <div class="frow">
+          <span class="flbl">Max items</span>
+          <input class="ctrl rec-max" type="number" value="8" min="2" max="20" style="width:55px;">
+        </div>
+        <div class="sep"></div>
+        <div class="chk-row">
+          <input type="checkbox" id="rg${bid}" class="rec-guard" checked>
+          <label for="rg${bid}">Fail-guard — suppress send if &lt; 2 results</label>
+          <span class="chk-hint">(throws filterThatDoesNotExist)</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="re${bid}" class="rec-even" checked>
+          <label for="re${bid}">Force even count</label>
+          <span class="chk-hint">(for 2-col layout)</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="rc${bid}" class="rec-cap" checked>
+          <label for="rc${bid}">Cap at max</label>
+        </div>
+      </div>
+      <div class="ibox">Inside loop: <code>{{ item.url }}</code> · <code>{{ item.mobile_image_url_en }}</code> · <code>{{ item.event_date }}</code><br>Pair with a <strong>2-Col Card Grid</strong> block to generate the left/right layout.</div>
+      ${mkChild('LOOP BODY',`rec_${bid}`,false)}
+    </div>
+  </div>
+</div>`;
+}
+
+function mkGRID(bid){
+  const defaultFields=['url','mobile_image_url_en','event_date'];
+  const pills=defaultFields.map(f=>mkPill(f)).join('');
+  const fOpts=CAT_FIELDS.map(f=>`<option value="${f}">${f}</option>`).join('')+`<option value="__custom__">✏️ custom…</option>`;
+  return `<div class="bwrap block-grid" data-bid="${bid}" data-type="grid">
+  <div class="bcard">
+    <div class="bhdr">
+      <span class="bbadge badge-grid">GRID</span>
+      <span class="blbl">2-Column Card Grid</span>
+      <div class="bctrl">
+        <button class="ibtn" onclick="toggleC('${bid}')">▾</button>
+        <button class="ibtn del" onclick="removeBlock('${bid}')">✕</button>
+      </div>
+    </div>
+    <div class="bbody" data-body="${bid}">
+      <div class="grid-cfg">
+        <div class="gcfg-ttl">⚙️ Configuration</div>
+        <div class="frow">
+          <span class="flbl">Source array</span>
+          <input class="ctrl grid-src" value="arr" style="width:80px;" placeholder="arr">
+          <span style="font-size:10px;color:var(--text3);margin-left:3px;">array variable (set by Rec block)</span>
+        </div>
+        <div class="frow">
+          <span class="flbl">Total var</span>
+          <input class="ctrl grid-total" value="total" style="width:80px;" placeholder="total">
+          <span style="font-size:10px;color:var(--text3);margin-left:3px;">count variable (set by Rec block)</span>
+        </div>
+        <div class="frow" style="align-items:flex-start;">
+          <span class="flbl" style="padding-top:3px;">Card fields</span>
+          <div style="flex:1;">
+            <div class="fields-wrap grid-fields">${pills}</div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
+              <select class="ctrl gf-sel" style="font-size:11px;">${fOpts}</select>
+              <input class="ctrl gf-cust" style="width:105px;display:none;" placeholder="field_name">
+              <button class="ibtn" style="background:rgba(247,118,142,.12);color:var(--grid-c);border:1px solid rgba(247,118,142,.2);" onclick="addGridField(this)">+ Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ibox">Generates <code>{% for i in range(0,total,2) %}</code> with <code>{% set left=arr[i] %}</code> / <code>{% set right=arr[i+1] %}</code><br>Each field renders as both <code>{{ left['field'] }}</code> and <code>{{ right['field'] }}</code>.</div>
+    </div>
+  </div>
+</div>`;
+}
+function mkPill(f){return `<span class="fpill" data-field="${f}">${f}<button class="fp-del" onclick="this.closest('.fpill').remove();compile()">✕</button></span>`;}
+
+function mkSOCIAL(bid){
+  const rows=[
+    {code:'SA',flag:'🇸🇦',name:'Saudi Arabia',badge:'cbadge-if',  tag:'IF',   removable:false},
+    {code:'BH',flag:'🇧🇭',name:'Bahrain',     badge:'cbadge-elif',tag:'ELIF', removable:true},
+    {code:'UAE',flag:'🇦🇪',name:'UAE (default)',badge:'cbadge-else',tag:'ELSE',removable:false,isElse:true},
+  ];
+  function srow(r){
+    const inputs=SOC_PLAT.map(p=>`<div class="soc-field"><label>${p.label}</label><input class="ctrl" style="width:100%;font-size:10px;padding:3px 5px;" data-plat="${p.key}" placeholder="https://…"></div>`).join('');
+    const del=r.removable?`<button class="del-cntry" onclick="this.closest('.soc-row').remove();compile()">✕</button>`:'';
+    return `<div class="soc-row" data-country="${r.code}"${r.isElse?' data-is-else="1"':''}>
+      <div class="soc-hdr"><span class="cflag">${r.flag}</span><span class="cname">${r.name}</span><span class="cbadge ${r.badge}">${r.tag}</span>${del}</div>
+      <div class="soc-grid">${inputs}</div>
+    </div>`;
+  }
+  return `<div class="bwrap block-social" data-bid="${bid}" data-type="social">
+  <div class="bcard">
+    <div class="bhdr">
+      <span class="bbadge badge-social">SOCIAL</span>
+      <span class="blbl">Social URLs — country branching</span>
+      <div class="bctrl">
+        <button class="ibtn" onclick="toggleC('${bid}')">▾</button>
+        <button class="ibtn del" onclick="removeBlock('${bid}')">✕</button>
+      </div>
+    </div>
+    <div class="bbody" data-body="${bid}">
+      <div class="ibox">Generates <code>{% set ig_url %}</code>, <code>{% set snap_url %}</code> … for each country.<br>IF = first country · ELIF = extra countries · ELSE = default (UAE).</div>
+      <div class="soc-countries">${rows.map(r=>srow(r)).join('')}</div>
+      <button class="add-cntry" onclick="addCountry(this)">+ Add country</button>
+    </div>
+  </div>
+</div>`;
+}
+
+// ══════════════════════════════ BLOCK FACTORY ════════════════
+const MAKERS={if:mkIF,for:mkFOR,set:mkSET,text:mkTEXT,rec:mkREC,grid:mkGRID,social:mkSOCIAL};
+
+function addBlock(container,type){
+  const bid=nid();
+  const tpl=MAKERS[type];if(!tpl)return null;
+  const d=document.createElement('div');d.innerHTML=tpl(bid).trim();
+  const el=d.firstElementChild;
+  container.appendChild(el);
+  wireBlock(el,bid,type);
+  initPickers(el);
+  wireInputs(el);
+  syncEmpty();compile();
+  return el;
+}
+function rootAdd(type){addBlock(root,type)}
+function removeBlock(bid){document.querySelector(`[data-bid="${bid}"]`)?.remove();syncEmpty();compile()}
+
+function wireBlock(el,bid,type){
+  // child area delegation
+  el.addEventListener('click',e=>{
+    const b=e.target.closest('.acb');if(!b)return;e.stopPropagation();
+    const slot=b.dataset.slot,t=b.dataset.add;
+    const cont=b.closest(`[data-slot="${slot}"]`)?.querySelector(`[data-cont="${slot}"]`);
+    if(cont)addBlock(cont,t);
+  });
+  // FOR toggles
+  if(type==='for'){
+    const cs=el.querySelector('.for-col'),cc=el.querySelector('.for-col-cust'),hint=el.querySelector('.for-hint');
+    cs?.addEventListener('change',()=>{
+      cc.style.display=cs.value==='__custom__'?'inline-block':'none';
+      if(cs.value&&cs.value!=='__custom__'){
+        const f=COLLECTIONS.find(c=>c.value===cs.value);
+        if(f){hint.innerHTML=`<span style="font-size:11px;background:rgba(42,195,222,.1);color:var(--teal);padding:3px 9px;border-radius:3px;font-family:'JetBrains Mono',monospace;">ℹ️ ${f.hint} — use {{ item.field_name }}</span>`;hint.style.display='block';}
+      }else hint.style.display='none';
+      compile();
+    });
+  }
+  // REC slug toggle
+  if(type==='rec'){
+    const rs=el.querySelector('.rec-slug'),rc=el.querySelector('.rec-slug-cust');
+    rs?.addEventListener('change',()=>{rc.style.display=rs.value==='__custom__'?'inline-block':'none';compile();});
+  }
+  // GRID field select
+  if(type==='grid'){
+    const gs=el.querySelector('.gf-sel'),gc=el.querySelector('.gf-cust');
+    gs?.addEventListener('change',()=>{gc.style.display=gs.value==='__custom__'?'inline-block':'none';});
+  }
+}
+
+// ══════════════════════════════ UI ACTIONS ═══════════════════
+function toggleC(bid){
+  const body=document.querySelector(`[data-body="${bid}"]`);
+  const btn=document.querySelector(`[data-bid="${bid}"] .ibtn`);
+  if(!body)return;
+  const c=body.classList.toggle('collapsed');
+  if(btn)btn.textContent=c?'▸':'▾';
+}
+function collapseAll(){document.querySelectorAll('[data-body]').forEach(b=>{b.classList.add('collapsed');const btn=document.querySelector(`[data-bid="${b.dataset.body}"] .ibtn`);if(btn)btn.textContent='▸';})}
+function expandAll(){document.querySelectorAll('[data-body]').forEach(b=>{b.classList.remove('collapsed');const btn=document.querySelector(`[data-bid="${b.dataset.body}"] .ibtn`);if(btn)btn.textContent='▾';})}
+function clearAll(){if(!confirm('Clear canvas?'))return;root.innerHTML='';root.appendChild(cempty);syncEmpty();compile()}
+
+function setMode(tabEl,mode){
+  const body=tabEl.closest('.bbody');
+  body.querySelectorAll('.stab').forEach(t=>t.classList.remove('on'));tabEl.classList.add('on');
+  body.querySelectorAll('.set-panel').forEach(p=>p.style.display='none');
+  body.querySelector(`[data-panel="${mode}"]`).style.display='block';
+  compile();
+}
+
+function insertToken(btn){
+  const row=btn.closest('.frow');
+  const p=row.querySelector('.tpick');
+  const cat=p?.querySelector('[data-role=cat]')?.value||'userSystem';
+  const attr=p?.querySelector('[data-role=val]')?.value?.trim()||'';
+  if(!attr){alert('Pick an attribute first');return}
+  const token=`{{ ${buildPath(cat,attr)} }}`;
+  const ta=btn.closest('.bbody').querySelector('.content-ta');
+  if(!ta)return;
+  const pos=ta.selectionStart||ta.value.length;
+  ta.value=ta.value.slice(0,pos)+token+ta.value.slice(pos);
+  ta.dispatchEvent(new Event('input'));
+}
+
+function addGridField(btn){
+  const body=btn.closest('.bbody');
+  const sel=body.querySelector('.gf-sel'),cust=body.querySelector('.gf-cust');
+  const f=sel.value==='__custom__'?cust.value.trim():sel.value;
+  if(!f)return;
+  const wrap=body.querySelector('.grid-fields');
+  const d=document.createElement('span');d.innerHTML=mkPill(f);
+  wrap.appendChild(d.firstElementChild);compile();
+}
+
+function addElif(btn){
+  const body=btn.closest('.bbody');
+  const list=body.querySelector('.elif-list');
+  const eid=nid();
+  const d=document.createElement('div');
+  d.innerHTML=`<div class="elif-blk" data-elif="${eid}">
+    <div class="elif-hdr">
+      <span class="btag btag-elif">ELIF</span>
+      <div class="cond-rows">${mkCondRow(true)}</div>
+      <button class="add-cond" onclick="addCond(this)" style="margin-left:5px;">+ AND</button>
+      <button class="ibtn del" onclick="this.closest('[data-elif]').remove();compile()" style="margin-left:auto;">✕</button>
+    </div>
+    ${mkChild('ELIF body',`elif_${eid}`)}
+  </div>`;
+  const el=d.firstElementChild;
+  list.appendChild(el);
+  el.addEventListener('click',e=>{
+    const b=e.target.closest('.acb');if(!b)return;e.stopPropagation();
+    const slot=b.dataset.slot,t=b.dataset.add;
+    const cont=b.closest(`[data-slot="${slot}"]`)?.querySelector(`[data-cont="${slot}"]`);
+    if(cont)addBlock(cont,t);
+  });
+  initPickers(el);wireInputs(el);compile();
+}
+
+function addElse(btn){
+  const body=btn.closest('.bbody');
+  const wrap=body.querySelector('.else-wrap');
+  if(wrap.style.display!=='none')return;
+  const eid=nid();
+  wrap.innerHTML=`<div class="else-blk">
+    <div class="elif-hdr">
+      <span class="btag btag-else">ELSE</span>
+      <button class="ibtn del" onclick="this.closest('.else-blk').parentElement.style.display='none';this.closest('.else-blk').parentElement.innerHTML='';compile()" style="margin-left:auto;">✕</button>
+    </div>
+    ${mkChild('ELSE body',`else_${eid}`)}
+  </div>`;
+  wrap.style.display='block';
+  wrap.addEventListener('click',e=>{
+    const b=e.target.closest('.acb');if(!b)return;e.stopPropagation();
+    const slot=b.dataset.slot,t=b.dataset.add;
+    const cont=b.closest(`[data-slot="${slot}"]`)?.querySelector(`[data-cont="${slot}"]`);
+    if(cont)addBlock(cont,t);
+  });
+  initPickers(wrap);wireInputs(wrap);compile();
+}
+
+function addCountry(btn){
+  const body=btn.closest('.bbody');
+  const wrap=body.querySelector('.soc-countries');
+  const inputs=SOC_PLAT.map(p=>`<div class="soc-field"><label>${p.label}</label><input class="ctrl" style="width:100%;font-size:10px;padding:3px 5px;" data-plat="${p.key}" placeholder="https://…"></div>`).join('');
+  const d=document.createElement('div');
+  d.innerHTML=`<div class="soc-row" data-country="CUSTOM">
+    <div class="soc-hdr">
+      <span class="cflag">🏳️</span>
+      <input class="ctrl" style="width:120px;font-size:11px;" placeholder="Country name" oninput="compile()">
+      <span class="cbadge cbadge-elif">ELIF</span>
+      <button class="del-cntry" onclick="this.closest('.soc-row').remove();compile()">✕</button>
+    </div>
+    <div class="soc-grid">${inputs}</div>
+  </div>`;
+  const elseRow=wrap.querySelector('[data-is-else="1"]');
+  wrap.insertBefore(d.firstElementChild,elseRow);
+  d.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',compile));
+  compile();
+}
+
+// ══════════════════════════════ COMPILER ════════════════════
+function compileContainer(container,depth){
+  let out='';
+  for(const child of container.children){
+    if(child.dataset.bid)out+=compileBlock(child,depth);
+  }
+  return out;
+}
+
+function compileBlock(el,depth){
+  const ind='  '.repeat(depth);
+  const type=el.dataset.type;
+
+  if(type==='text'){
+    const val=el.querySelector('.content-ta')?.value||'';
+    return val?val.split('\n').map(l=>ind+l).join('\n')+'\n':'';
+  }
+
+  if(type==='set'){
+    const name=el.querySelector('.set-name')?.value.trim()||'myVar';
+    const panel=el.querySelector('.set-panel:not([style*="display: none"]):not([style*="display:none"])')||el.querySelector('[data-panel="tok"]');
+    const mode=panel?.dataset.panel||'tok';
+    let val='';
+    if(mode==='tok'){
+      const p=panel.querySelector('.tpick');
+      const cat=p?.querySelector('[data-role=cat]')?.value||'userSystem';
+      const attr=p?.querySelector('[data-role=val]')?.value?.trim()||'';
+      const def=el.querySelector('.set-def')?.value?.trim()||'';
+      val=buildPath(cat,attr);if(def)val+=` | default("${def}")`;
+    }else if(mode==='static'){
+      val=`"${el.querySelector('.set-static')?.value||''}"`;
+    }else if(mode==='date'){
+      val=`we_date | we_date("${el.querySelector('.set-datefmt')?.value||'MMMM'}")`;
+    }else{
+      val=el.querySelector('.set-expr')?.value||'';
+    }
+    return `${ind}{% set ${name} = ${val} %}\n`;
+  }
+
+  if(type==='for'){
+    const iter=el.querySelector('.for-iter')?.value.trim()||'item';
+    const cs=el.querySelector('.for-col');
+    const colVal=cs?.value==='__custom__'?(el.querySelector('.for-col-cust')?.value.trim()||'items'):(cs?.value||'items');
+    const cont=el.querySelector(`[data-cont^="for_"]`);
+    const body=cont?compileContainer(cont,depth+1):'';
+    return `${ind}{% for ${iter} in ${colVal} %}\n${body}${ind}{% endfor %}\n`;
+  }
+
+  if(type==='if'){
+    let out='';
+    const ifCond=buildConds(el.querySelector('.cond-rows[data-btype="if"]'));
+    const ifCont=el.querySelector(`[data-cont^="if_"]`);
+    out+=`${ind}{% if ${ifCond} %}\n`;
+    out+=ifCont?compileContainer(ifCont,depth+1):'';
+    el.querySelectorAll('.elif-blk').forEach(ew=>{
+      const cond=buildConds(ew.querySelector('.cond-rows'));
+      const cont=ew.querySelector(`[data-cont^="elif_"]`);
+      out+=`${ind}{% elif ${cond} %}\n`;
+      out+=cont?compileContainer(cont,depth+1):'';
+    });
+    const elseCont=el.querySelector(`[data-cont^="else_"]`);
+    if(elseCont){out+=`${ind}{% else %}\n`;out+=compileContainer(elseCont,depth+1);}
+    out+=`${ind}{% endif %}\n`;
+    return out;
+  }
+
+  if(type==='rec'){
+    const rs=el.querySelector('.rec-slug');
+    const slug=rs?.value==='__custom__'?(el.querySelector('.rec-slug-cust')?.value.trim()||'c_recommendation_XXX'):(rs?.value||'c_recommendation_XXX');
+    const iter=el.querySelector('.rec-iter')?.value.trim()||'item';
+    const maxN=parseInt(el.querySelector('.rec-max')?.value)||8;
+    const guard=el.querySelector('.rec-guard')?.checked;
+    const even=el.querySelector('.rec-even')?.checked;
+    const cap=el.querySelector('.rec-cap')?.checked;
+    const cont=el.querySelector(`[data-cont^="rec_"]`);
+    const body=cont?compileContainer(cont,depth+1):'';
+    let out='';
+    out+=`${ind}{% set arr = [] %}\n`;
+    out+=`${ind}{% set firstArr = recommend["${slug}"][xargs()] %}\n`;
+    out+=`${ind}{% set totalArray = firstArr.length %}\n`;
+    if(guard){out+=`${ind}{% if totalArray < 2 %}\n${ind}  {{ "fail_trigger" | filterThatDoesNotExist }}{# hard fail — suppresses send if not enough recs #}\n${ind}{% endif %}\n`;}
+    out+=`${ind}{% set arr = arr.concat(firstArr) %}\n`;
+    out+=`${ind}{% set total = arr.length %}\n`;
+    if(cap)out+=`${ind}{% if total > ${maxN} %}{% set total = ${maxN} %}{% endif %}\n`;
+    if(even)out+=`${ind}{% if total % 2 != 0 %}{% set total = total - 1 %}{% endif %}\n`;
+    if(body.trim())out+=`${ind}{% for ${iter} in arr %}\n${body}${ind}{% endfor %}\n`;
+    return out;
+  }
+
+  if(type==='grid'){
+    const src=el.querySelector('.grid-src')?.value.trim()||'arr';
+    const total=el.querySelector('.grid-total')?.value.trim()||'total';
+    const fields=[...el.querySelectorAll('.fpill')].map(p=>p.dataset.field);
+    let out='';
+    out+=`${ind}{% for i in range(0, ${total}, 2) %}\n`;
+    out+=`${ind}  {% set left  = ${src}[i] %}\n`;
+    out+=`${ind}  {% set right = ${src}[i + 1] %}\n`;
+    out+=`${ind}  {% if left %}\n`;
+    fields.forEach(f=>{out+=`${ind}    {{ left['${f}'] }}\n`;});
+    out+=`${ind}  {% endif %}\n`;
+    out+=`${ind}  {% if right %}\n`;
+    fields.forEach(f=>{out+=`${ind}    {{ right['${f}'] }}\n`;});
+    out+=`${ind}  {% endif %}\n`;
+    out+=`${ind}{% endfor %}\n`;
+    return out;
+  }
+
+  if(type==='social'){
+    const rows=[...el.querySelectorAll('.soc-countries .soc-row')];
+    let out='';
+    rows.forEach((row,idx)=>{
+      const isElse=row.dataset.isElse==='1';
+      const urls={};
+      row.querySelectorAll('[data-plat]').forEach(inp=>{urls[inp.dataset.plat]=inp.value.trim()||''});
+      let tag;
+      if(isElse){tag=`{% else %}`;}
+      else{
+        const ni=row.querySelector('input.ctrl:not([data-plat])');
+        const country=ni?ni.value.trim():row.dataset.country;
+        tag=idx===0?`{% if user["custom"]["Country"] == "${country}" %}`:`{% elif user["custom"]["Country"] == "${country}" %}`;
+      }
+      out+=`${ind}${tag}\n`;
+      if(urls.ig)     out+=`${ind}  {% set ig_url      = "${urls.ig}" %}\n`;
+      if(urls.snap)   out+=`${ind}  {% set snap_url    = "${urls.snap}" %}\n`;
+      if(urls.fb)     out+=`${ind}  {% set fb_url      = "${urls.fb}" %}\n`;
+      if(urls.tiktok) out+=`${ind}  {% set tiktok_url  = "${urls.tiktok}" %}\n`;
+      if(urls.x)      out+=`${ind}  {% set x_url       = "${urls.x}" %}\n`;
+      if(urls.threads)out+=`${ind}  {% set threads_url = "${urls.threads}" %}\n`;
+    });
+    if(rows.length)out+=`${ind}{% endif %}\n`;
+    return out;
+  }
+  return '';
+}
+
+function compile(){
+  const code=compileContainer(root,0);
+  const out=document.getElementById('output');
+  out.textContent=code.trim()||'<!-- Add blocks from the left panel →';
+  hljs.highlightElement(out);
+}
+function copyCode(){
+  navigator.clipboard.writeText(document.getElementById('output').textContent).then(()=>{
+    const btn=document.getElementById('copy-btn');
+    btn.textContent='Copied ✓';setTimeout(()=>btn.textContent='Copy',1800);
+  });
+}
+
+// ══════════════════════════════ PRESETS ══════════════════════
+function loadPreset(name){
+  if(root.querySelectorAll('[data-bid]').length>0){if(!confirm('Clear canvas and load preset?'))return;}
+  root.innerHTML='';root.appendChild(cempty);syncEmpty();
+
+  if(name==='greeting'){
+    const el=addBlock(root,'set');
+    el.querySelector('.set-name').value='firstName';
+    el.querySelector('.set-name').dispatchEvent(new Event('input'));
+    const srch=el.querySelector('.tp-srch'),hid=el.querySelector('[data-role=val]');
+    srch.value='first_name';hid.value='first_name';
+    el.querySelector('.set-def').value='there';
+    el.querySelector('.set-def').dispatchEvent(new Event('input'));
+    const txtEl=addBlock(root,'text');
+    txtEl.querySelector('.content-ta').value='Hello {{ firstName }}! Here\'s what\'s on for you.';
+    txtEl.querySelector('.content-ta').dispatchEvent(new Event('input'));
+  }
+
+  else if(name==='geo'){
+    const el=addBlock(root,'if');
+    const cat=el.querySelector('[data-role=cat]');
+    cat.value='userCustom';cat.dispatchEvent(new Event('change'));
+    const srch=el.querySelector('.tp-srch'),hid=el.querySelector('[data-role=val]');
+    srch.value='Country';hid.value='Country';
+    el.querySelector('.operator-select').value='==';
+    el.querySelector('.value-input').value='UAE';
+    el.querySelectorAll('input,select').forEach(i=>i.dispatchEvent(new Event('input')));
+  }
+
+  else if(name==='rec_email'){
+    // 1. SET currentIST = we_date
+    const setEl=addBlock(root,'set');
+    setEl.querySelector('.set-name').value='currentIST';
+    setEl.querySelector('.set-name').dispatchEvent(new Event('input'));
+    const dateTab=setEl.querySelectorAll('.stab')[2];
+    if(dateTab)setMode(dateTab,'date');
+
+    // 2. IF first_name is defined
+    const ifEl=addBlock(root,'if');
+    const cat=ifEl.querySelector('[data-role=cat]');
+    cat.value='userSystem';cat.dispatchEvent(new Event('change'));
+    const srch=ifEl.querySelector('.tp-srch'),hid=ifEl.querySelector('[data-role=val]');
+    srch.value='first_name';hid.value='first_name';
+    ifEl.querySelector('.operator-select').value='is defined';
+    ifEl.querySelectorAll('input,select').forEach(i=>i.dispatchEvent(new Event('input')));
+
+    // 3. REC
+    addBlock(root,'rec');
+
+    // 4. GRID
+    addBlock(root,'grid');
+
+    // 5. SOCIAL
+    addBlock(root,'social');
+  }
+
+  compile();
+}
+
+// ══════════════════════════════ INIT ══════════════════════════
+syncEmpty();compile();
+</script>
+</body>
+</html>
