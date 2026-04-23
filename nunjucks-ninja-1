@@ -1,0 +1,1566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Nunjucks Visual Builder — Prototype</title>
+<style>
+  :root {
+    --bg: #f6f5fb;
+    --surface: #ffffff;
+    --ink: #1a1630;
+    --ink-soft: #524d70;
+    --ink-muted: #8a86a4;
+    --line: #ece9f5;
+    --line-strong: #d9d4ee;
+    --accent: #6a4df0;
+    --accent-soft: #eeeafe;
+    --accent-strong: #4f30e0;
+    --set: #3a7bd5;
+    --if: #6a4df0;
+    --for: #e07b2a;
+    --out: #1aa47a;
+    --raw: #707081;
+    --danger: #d64747;
+    --code-bg: #15132b;
+    --code-ink: #e8e4ff;
+    --code-dim: #8c85c2;
+    --code-str: #ffd08a;
+    --code-tag: #9d8bff;
+    --code-kw: #ff7ec2;
+    --code-var: #86e0ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  header.top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+  }
+  header.top .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+  }
+  header.top .brand .dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #8a6bff, #4f30e0);
+  }
+  header.top .brand small {
+    color: var(--ink-muted);
+    font-weight: 500;
+    margin-left: 6px;
+  }
+  header.top .actions { display: flex; gap: 8px; }
+  .btn {
+    font: inherit;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+  .btn.ghost { border-color: transparent; background: transparent; color: var(--ink-soft); }
+  .btn.ghost:hover { background: var(--accent-soft); color: var(--accent); }
+  .btn.danger { color: var(--danger); }
+  .btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+  main.layout {
+    display: grid;
+    grid-template-columns: 1fr 520px;
+    height: calc(100vh - 49px);
+    min-height: 0;
+  }
+
+  .canvas {
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .canvas .title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    margin: 0 0 12px 4px;
+  }
+  .preview {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--line);
+  }
+  .preview .phead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid #2a2549;
+    color: var(--code-dim);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .preview .phead .copy {
+    border: 1px solid #3a3465;
+    background: transparent;
+    color: var(--code-ink);
+    padding: 4px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .preview .phead .copy:hover { border-color: #6a4df0; color: #fff; }
+  .preview pre {
+    margin: 0;
+    padding: 16px;
+    overflow: auto;
+    flex: 1;
+    font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre;
+  }
+  .preview .tok-kw  { color: var(--code-kw); }
+  .preview .tok-tag { color: var(--code-tag); }
+  .preview .tok-str { color: var(--code-str); }
+  .preview .tok-var { color: var(--code-var); }
+  .preview .tok-dim { color: var(--code-dim); }
+
+  /* Blocks */
+  .block-list { display: flex; flex-direction: column; gap: 8px; }
+  .block {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line-strong);
+    border-radius: 8px;
+    padding: 10px 12px 12px 12px;
+    position: relative;
+  }
+  .block[data-kind="set"]    { border-left-color: var(--set); }
+  .block[data-kind="if"]     { border-left-color: var(--if); }
+  .block[data-kind="for"]    { border-left-color: var(--for); }
+  .block[data-kind="output"] { border-left-color: var(--out); }
+  .block[data-kind="raw"]    { border-left-color: var(--raw); }
+
+  .block .bhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .block .btag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .block[data-kind="set"]    .btag { background: #e6f0fb; color: var(--set); }
+  .block[data-kind="for"]    .btag { background: #fbeedf; color: var(--for); }
+  .block[data-kind="output"] .btag { background: #dff4ec; color: var(--out); }
+  .block[data-kind="raw"]    .btag { background: #e9e9ed; color: var(--raw); }
+  .block .brem {
+    border: 0;
+    background: transparent;
+    color: var(--ink-muted);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  .block .brem:hover { background: #fbe7e7; color: var(--danger); }
+
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .row .lbl { color: var(--ink-muted); font-size: 13px; }
+
+  .field {
+    font: inherit;
+    padding: 4px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+    min-width: 60px;
+  }
+  .field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .children {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px dashed var(--line-strong);
+    border-radius: 6px;
+    background: #fafaff;
+  }
+  .children .clabel {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    margin: 0 0 8px 2px;
+    font-weight: 600;
+  }
+  .branch { border-top: 1px dashed var(--line-strong); padding-top: 10px; margin-top: 10px; }
+  .branch:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+
+  /* Condition builder */
+  .cond-group {
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    padding: 8px;
+    background: #fff;
+  }
+  .cond-group .gbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .cond-row, .cond-grow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 6px;
+    background: #fafaff;
+    border-radius: 5px;
+  }
+  .cond-row:first-child, .cond-grow:first-child { margin-top: 0; }
+  .combinator {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 0;
+    cursor: pointer;
+  }
+  .chip-add {
+    font: inherit;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px dashed var(--line-strong);
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .chip-add:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+  /* Value input (token or literal) */
+  .value-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--line-strong);
+    background: #fff;
+  }
+  .value-pill .vmode {
+    font-size: 11px;
+    padding: 3px 6px;
+    background: #f2f0fb;
+    color: var(--ink-soft);
+    border-right: 1px solid var(--line-strong);
+    cursor: pointer;
+  }
+  .value-pill input, .value-pill select {
+    border: 0;
+    padding: 4px 8px;
+    font: inherit;
+    background: transparent;
+    outline: none;
+    min-width: 100px;
+  }
+  .value-pill .token-display {
+    padding: 4px 8px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: var(--accent-strong);
+    cursor: pointer;
+    min-width: 140px;
+  }
+  .value-pill.invalid { border-color: var(--danger); }
+
+  /* Empty state */
+  .empty {
+    padding: 28px;
+    text-align: center;
+    color: var(--ink-muted);
+    border: 1px dashed var(--line-strong);
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  /* Popover (statement picker / token picker) */
+  .pop-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(26,22,48,0.28);
+    display: none;
+    z-index: 50;
+  }
+  .pop-backdrop.open { display: block; }
+  .popover {
+    position: absolute;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(26,22,48,0.18);
+    min-width: 260px;
+    padding: 6px;
+    z-index: 60;
+  }
+  .popover .pitem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .popover .pitem:hover { background: var(--accent-soft); color: var(--accent); }
+  .popover .pitem .pk {
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    background: var(--line);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .popover .pitem[data-kind="set"]    .pk { background: var(--set); }
+  .popover .pitem[data-kind="if"]     .pk { background: var(--if); }
+  .popover .pitem[data-kind="for"]    .pk { background: var(--for); }
+  .popover .pitem[data-kind="output"]    .pk { background: var(--out); }
+  .popover .pitem[data-kind="outputTxt"] .pk { background: var(--out); }
+  .popover .pitem[data-kind="raw"]       .pk { background: var(--raw); }
+  .popover .pitem .pd { color: var(--ink-muted); font-size: 12px; }
+
+  /* Token picker */
+  .tokpop { width: 320px; max-height: 420px; overflow: auto; padding: 8px; }
+  .tokpop .tsearch {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--line-strong);
+    font: inherit;
+    margin-bottom: 8px;
+  }
+  .tokpop .tcrumb {
+    font-size: 12px;
+    color: var(--ink-muted);
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .tokpop .tcrumb a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .tokpop .tnode {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .tokpop .tnode:hover { background: var(--accent-soft); }
+  .tokpop .tnode .tname { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+  .tokpop .tnode .tmeta { color: var(--ink-muted); font-size: 11px; }
+
+  /* Footer */
+  footer.bot {
+    position: fixed;
+    bottom: 12px; right: 12px;
+    color: var(--ink-muted);
+    font-size: 12px;
+  }
+
+  /* Helpful context line under blocks */
+  .hint { color: var(--ink-muted); font-size: 12px; margin-top: 4px; }
+
+  /* Value holder: a value-pill followed by filter chips and a + filter */
+  .value-holder { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #fff6e8;
+    border: 1px solid #f3d8a6;
+    border-radius: 5px;
+    padding: 2px 6px;
+    font: 12px/1.2 ui-monospace, Menlo, Consolas, monospace;
+    color: #8a5a10;
+  }
+  .filter-chip .fname { white-space: nowrap; }
+  .filter-chip .farg {
+    border: 0;
+    background: #fff;
+    border-radius: 3px;
+    padding: 2px 5px;
+    font: inherit;
+    width: 80px;
+    outline: none;
+  }
+  .filter-chip .farg:focus { box-shadow: 0 0 0 2px #f3d8a6; }
+  .filter-chip .fx {
+    border: 0; background: transparent; cursor: pointer;
+    color: #8a5a10; opacity: 0.7;
+  }
+  .filter-chip .fx:hover { opacity: 1; color: var(--danger); }
+  .filter-add {
+    font-size: 11px !important;
+    padding: 2px 6px !important;
+  }
+
+  /* Filter picker popover uses the same .popover class but wider */
+  .filterpop { width: 280px; max-height: 360px; overflow: auto; padding: 6px; }
+  .filterpop .fsec {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--ink-muted); padding: 8px 8px 4px 8px; font-weight: 600;
+  }
+  .filterpop .frow {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 6px 8px; border-radius: 5px; cursor: pointer;
+    font: 13px/1.3 ui-monospace, Menlo, Consolas, monospace;
+  }
+  .filterpop .frow:hover { background: var(--accent-soft); }
+  .filterpop .frow .fsig { color: var(--ink-muted); font-size: 11px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="dot"></div>
+    Nunjucks Visual Builder
+    <small>prototype</small>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" id="btn-load-sample">Load sample</button>
+    <button class="btn ghost" id="btn-clear">Clear</button>
+    <button class="btn primary" id="btn-copy">Copy Nunjucks</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="canvas">
+    <p class="title">Canvas</p>
+    <div id="root-list" class="block-list"></div>
+    <div style="margin-top:12px">
+      <button class="btn primary" data-add-root>+ Add statement</button>
+    </div>
+    <footer class="bot">Tip: click <b>+ filter</b> on any value to chain filters (<code>| length</code>, <code>| upper</code>, <code>| default(..)</code>). Operators in conditions auto-adapt to the left-side's type — arrays show <code>in</code>, numbers show <code>&gt;/&lt;</code>, everything can use <code>is defined</code>.</footer>
+  </section>
+  <section class="preview">
+    <div class="phead">
+      <span>Generated Nunjucks</span>
+      <button class="copy" id="btn-copy2">Copy</button>
+    </div>
+    <pre id="code-out"></pre>
+  </section>
+</main>
+
+<div class="pop-backdrop" id="pop-backdrop"></div>
+
+<script>
+/* ============================================================
+   Token schema (what marketers see in dropdowns)
+   In prod this comes from your schema registry (user attrs,
+   event payload definitions, internal token catalog).
+   ============================================================ */
+const TOKEN_SCHEMA = {
+  user: {
+    _meta: { label: "User", description: "Per-user attributes" },
+    email: { _leaf: true, type: "string" },
+    first_name: { _leaf: true, type: "string" },
+    last_name: { _leaf: true, type: "string" },
+    custom: {
+      _meta: { label: "Custom attributes" },
+      Country: { _leaf: true, type: "string" },
+      "City of Interest": { _leaf: true, type: "string" },
+      "Country of Interest": { _leaf: true, type: "string" },
+      "Loyalty Tier": { _leaf: true, type: "string" },
+      Age: { _leaf: true, type: "number" },
+      "Interested Categories": { _leaf: true, type: "array" },
+      "Last Purchase": { _leaf: true, type: "number" /* unix ts */ },
+    },
+  },
+  event: {
+    _meta: { label: "Event", description: "Triggering event payload" },
+    name: { _leaf: true, type: "string" },
+    timestamp: { _leaf: true, type: "number" },
+    custom: {
+      _meta: { label: "Event custom payload" },
+      "Genre 1":       { _meta: { label: "Genre 1" }, custom: { Tags: { _leaf: true, type: "array" } } },
+      "Genre 2":       { _meta: { label: "Genre 2" }, custom: { Tags: { _leaf: true, type: "array" } } },
+      "Nationality 1": { _meta: { label: "Nationality 1" }, custom: { Tags: { _leaf: true, type: "array" } } },
+      "Nationality 2": { _meta: { label: "Nationality 2" }, custom: { Tags: { _leaf: true, type: "array" } } },
+      "Broad Type 1":  { _meta: { label: "Broad Type 1" }, custom: { Tags: { _leaf: true, type: "array" } } },
+      "Broad Type 2":  { _meta: { label: "Broad Type 2" }, custom: { Tags: { _leaf: true, type: "array" } } },
+      Festive:         { _meta: { label: "Festive" }, custom: { Tags: { _leaf: true, type: "array" } } },
+      Sport:           { _meta: { label: "Sport" }, custom: { Tags: { _leaf: true, type: "array" } } },
+      Gaming:          { _meta: { label: "Gaming" }, custom: { Tags: { _leaf: true, type: "array" } } },
+    },
+  },
+  system: {
+    _meta: { label: "System", description: "Built-in values" },
+    now: { _leaf: true, type: "number" },
+    today: { _leaf: true, type: "string" },
+  },
+};
+
+/* ============================================================
+   Filter catalog — each filter declares the input types it makes
+   sense on, its output type, and its arg shape. The picker uses
+   `in` to decide whether to offer the filter given a value's type.
+   `out: "same"` means the type is preserved.
+   ============================================================ */
+const FILTERS = {
+  // String hygiene
+  upper:      { label: "upper",       in: ["string"],          out: "string", args: [] },
+  lower:      { label: "lower",       in: ["string"],          out: "string", args: [] },
+  title:      { label: "title",       in: ["string"],          out: "string", args: [] },
+  capitalize: { label: "capitalize",  in: ["string"],          out: "string", args: [] },
+  trim:       { label: "trim",        in: ["string"],          out: "string", args: [] },
+  replace:    { label: "replace",     in: ["string"],          out: "string", args: [{label:"from",type:"string"},{label:"to",type:"string"}] },
+  truncate:   { label: "truncate",    in: ["string"],          out: "string", args: [{label:"length",type:"number",default:"80"}] },
+  striptags:  { label: "striptags",   in: ["string"],          out: "string", args: [] },
+  urlencode:  { label: "urlencode",   in: ["string"],          out: "string", args: [] },
+  safe:       { label: "safe",        in: ["string"],          out: "string", args: [] },
+  escape:     { label: "escape",      in: ["string"],          out: "string", args: [] },
+  // Universal safety
+  default:    { label: "default",     in: ["any"],             out: "same",   args: [{label:"fallback",type:"string"}] },
+  // Array shaping
+  length:     { label: "length",      in: ["array","string"],  out: "number", args: [] },
+  first:      { label: "first",       in: ["array"],           out: "unknown",args: [] },
+  last:       { label: "last",        in: ["array"],           out: "unknown",args: [] },
+  join:       { label: "join",        in: ["array"],           out: "string", args: [{label:"separator",type:"string",default:", "}] },
+  sort:       { label: "sort",        in: ["array"],           out: "array",  args: [] },
+  reverse:    { label: "reverse",     in: ["array","string"],  out: "same",   args: [] },
+  batch:      { label: "batch",       in: ["array"],           out: "array",  args: [{label:"size",type:"number",default:"2"}] },
+  // Numeric
+  round:      { label: "round",       in: ["number"],          out: "number", args: [] },
+  abs:        { label: "abs",         in: ["number"],          out: "number", args: [] },
+  int:        { label: "int",         in: ["string","number"], out: "number", args: [] },
+  float:      { label: "float",       in: ["string","number"], out: "number", args: [] },
+  // Date-ish (assume number unix-ts input)
+  date:       { label: "date",        in: ["number","string"], out: "string", args: [{label:"format",type:"string",default:"MMM D, YYYY"}] },
+  dump:       { label: "dump",        in: ["any"],             out: "string", args: [] },
+};
+function filterOutputType(name, inputType) {
+  const f = FILTERS[name];
+  if (!f) return "unknown";
+  if (f.out === "same") return inputType;
+  return f.out;
+}
+function filterAcceptsType(name, inputType) {
+  const f = FILTERS[name]; if (!f) return false;
+  if (f.in.includes("any")) return true;
+  if (inputType === "unknown") return true; // allow when type is ambiguous
+  return f.in.includes(inputType);
+}
+
+/* ============================================================
+   AST shape
+   ============================================================ */
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+function mkSet(name = "my_var", value = lit("")) { return { id: uid(), kind: "set", name, value }; }
+/* Output supports two modes:
+   - "variable": emits {{ expr }}  — pick a token/literal
+   - "text":     emits raw text    — marketer types plain copy */
+function mkOutput(value = lit("")) { return { id: uid(), kind: "output", mode: "variable", value, text: "" }; }
+function mkOutputText(text = "") { return { id: uid(), kind: "output", mode: "text", value: null, text }; }
+function mkIf() {
+  return {
+    id: uid(), kind: "if",
+    branches: [{ id: uid(), condition: grp(), body: [] }],
+    elseBody: null,
+  };
+}
+function mkFor(item = "item", iterable = tok(["user","custom","Country"])) {
+  return { id: uid(), kind: "for", item, iterable, body: [], elseBody: null };
+}
+function mkRaw(content = "") { return { id: uid(), kind: "raw", content }; }
+
+// expressions — every value carries a (possibly empty) filter chain.
+// A filter chain turns a token or literal into a pipeline like
+//   country | lower | default("n/a")
+//   tags    | length
+// which is how most real Nunjucks personalization is written.
+function lit(v, type="string") { return { id: uid(), kind: "lit", type, value: v, filters: [] }; }
+function tok(path) { return { id: uid(), kind: "tok", path, filters: [] }; }
+function mkFilter(name) {
+  const def = FILTERS[name];
+  const args = (def && def.args || []).map(a => ({ type: a.type || "string", value: a.default ?? "" }));
+  return { id: uid(), name, args };
+}
+/* A comparison or group carries its own `combinator` — the AND/OR that
+   joins it to the PREVIOUS sibling inside its parent group. The first
+   item in a group ignores this field. Mixed AND/OR within a single
+   group is the point. Nested groups handle non-default precedence. */
+function cmp(left=tok(["user","custom","Country"]), op="==", right=lit("Saudi Arabia"), combinator="and") {
+  return { id: uid(), kind: "cmp", left, op, right, combinator };
+}
+function grp(items=[cmp()], combinator="and") { return { id: uid(), kind: "grp", items, combinator }; }
+
+/* Root program */
+let program = [];
+
+/* ============================================================
+   Codegen: AST -> Nunjucks string
+   ============================================================ */
+function genProgram(stmts, indent = 0) {
+  return stmts.map(s => genStmt(s, indent)).join("\n");
+}
+function pad(n) { return "  ".repeat(n); }
+function genStmt(s, ind) {
+  const p = pad(ind);
+  switch (s.kind) {
+    case "set":    return `${p}{% set ${s.name || "var"} = ${genExpr(s.value)} %}`;
+    case "output":
+      if (s.mode === "text") {
+        // Emit plain text verbatim at the current indent, preserving newlines.
+        return (s.text || "").split("\n").map(l => p + l).join("\n");
+      }
+      return `${p}{{ ${genExpr(s.value)} }}`;
+    case "raw":    return s.content.split("\n").map(l => p + l).join("\n");
+    case "for": {
+      const body = s.body.length ? genProgram(s.body, ind + 1) : pad(ind + 1) + "{# empty #}";
+      let out = `${p}{% for ${s.item} in ${genExpr(s.iterable)} %}\n${body}`;
+      if (s.elseBody) {
+        const els = s.elseBody.length ? genProgram(s.elseBody, ind + 1) : pad(ind + 1) + "{# empty #}";
+        out += `\n${p}{% else %}\n${els}`;
+      }
+      out += `\n${p}{% endfor %}`;
+      return out;
+    }
+    case "if": {
+      const parts = [];
+      s.branches.forEach((b, i) => {
+        const kw = i === 0 ? "if" : "elif";
+        const body = b.body.length ? genProgram(b.body, ind + 1) : pad(ind + 1) + "{# empty #}";
+        parts.push(`${p}{% ${kw} ${genExpr(b.condition)} %}\n${body}`);
+      });
+      if (s.elseBody) {
+        const body = s.elseBody.length ? genProgram(s.elseBody, ind + 1) : pad(ind + 1) + "{# empty #}";
+        parts.push(`${p}{% else %}\n${body}`);
+      }
+      parts.push(`${p}{% endif %}`);
+      return parts.join("\n");
+    }
+  }
+  return "";
+}
+function genExpr(e) {
+  if (!e) return '""';
+  switch (e.kind) {
+    case "lit":
+      return appendFilters(genLit(e), e.filters);
+    case "tok":
+      return appendFilters(genTokenPath(e.path), e.filters);
+    case "cmp": {
+      // `is` tests don't take a right-hand-side (is defined, is string, ...).
+      if (e.op && e.op.startsWith("is ")) return `${genExpr(e.left)} ${e.op}`;
+      return `${genExpr(e.left)} ${e.op} ${genExpr(e.right)}`;
+    }
+    case "grp": {
+      if (!e.items.length) return "true";
+      // Each item (except the first) contributes its own combinator.
+      return e.items.map((it, i) => {
+        const s = genExpr(it);
+        const wrapped = it.kind === "grp" ? `(${s})` : s;
+        return i === 0 ? wrapped : `${it.combinator || "and"} ${wrapped}`;
+      }).join(" ");
+    }
+  }
+  return '""';
+}
+function genTokenPath(path) {
+  if (!path || !path.length) return '""';
+  const head = path[0];
+  const rest = path.slice(1).map(p => `[${JSON.stringify(p)}]`).join("");
+  return head + rest;
+}
+function genLit(e) {
+  if (e.type === "string") return JSON.stringify(e.value ?? "");
+  if (e.type === "number") return String(Number(e.value) || 0);
+  if (e.type === "bool")   return e.value ? "true" : "false";
+  if (e.type === "array") {
+    const raw = (e.value || "").trim();
+    if (!raw) return "[]";
+    return "[" + raw.split(",").map(s => JSON.stringify(s.trim())).join(", ") + "]";
+  }
+  return JSON.stringify(e.value ?? "");
+}
+function genFilterArg(a) {
+  if (a.type === "number") { const n = Number(a.value); return Number.isFinite(n) ? String(n) : "0"; }
+  if (a.type === "bool")   return a.value === "true" || a.value === true ? "true" : "false";
+  return JSON.stringify(a.value ?? "");
+}
+function appendFilters(base, filters) {
+  if (!filters || !filters.length) return base;
+  return base + filters.map(f => {
+    const args = (f.args || []).map(genFilterArg);
+    return args.length ? ` | ${f.name}(${args.join(", ")})` : ` | ${f.name}`;
+  }).join("");
+}
+
+/* ============================================================
+   Type inference — used to decide which filters & operators to
+   offer. Best-effort: returns "unknown" when we can't tell.
+   ============================================================ */
+function inferTypeAtBase(val, scope) {
+  if (val.kind === "lit") return val.type || "string";
+  if (val.kind === "tok") {
+    // Variable in scope? Use declared type.
+    if (val.path.length === 1) {
+      const v = scope.find(x => x.name === val.path[0]);
+      if (v) return v.type || "unknown";
+    }
+    // Walk the predefined token schema.
+    let n = TOKEN_SCHEMA;
+    for (const p of val.path) {
+      n = n && n[p];
+      if (!n) return "unknown";
+    }
+    return n._leaf ? (n.type || "unknown") : "unknown";
+  }
+  return "unknown";
+}
+function inferType(val, scope) {
+  let t = inferTypeAtBase(val, scope);
+  for (const f of (val.filters || [])) t = filterOutputType(f.name, t);
+  return t;
+}
+
+/* Operator set shown in the condition UI, tailored to the LHS type.
+   Unknown types get the full set — don't artificially restrict. */
+function operatorOptionsFor(type) {
+  const tests = ["is defined", "is undefined", "is number", "is string"];
+  if (type === "number")  return ["==","!=",">","<",">=","<=", ...tests];
+  if (type === "string")  return ["==","!=","in","not in", ...tests];
+  if (type === "array")   return ["in","not in", ...tests];
+  if (type === "bool")    return ["==","!=", ...tests];
+  // fallback: full palette
+  return ["==","!=",">","<",">=","<=","in","not in", ...tests];
+}
+
+/* ============================================================
+   Rendering
+   ============================================================ */
+const rootEl = document.getElementById("root-list");
+const codeEl = document.getElementById("code-out");
+
+function render() {
+  rootEl.innerHTML = "";
+  if (!program.length) {
+    rootEl.innerHTML = '<div class="empty">Canvas is empty. Click <b>+ Add statement</b> to start — or hit <b>Load sample</b>.</div>';
+  } else {
+    let scope = [];
+    program.forEach(s => {
+      rootEl.appendChild(renderBlock(s, program, scope));
+      scope = extendScope(scope, s);
+    });
+  }
+  renderCode();
+}
+
+/* A variable enters scope after the statement that declared it.
+   Scope entries are { name, type } — type drives filter/operator choices. */
+function extendScope(scope, s) {
+  if (s.kind === "set" && s.name) {
+    return scope.concat([{ name: s.name, type: inferType(s.value, scope) }]);
+  }
+  return scope;
+}
+function scopeHasVar(scope, name) { return scope.some(v => v.name === name); }
+function scopeVarType(scope, name) { const v = scope.find(x => x.name === name); return v ? v.type : "unknown"; }
+
+function renderBlock(s, parentList, scope) {
+  const el = document.createElement("div");
+  el.className = "block";
+  el.dataset.kind = s.kind;
+  el.dataset.id = s.id;
+
+  const head = document.createElement("div");
+  head.className = "bhead";
+  head.innerHTML = `<span class="btag">${kindLabel(s.kind, s)}</span>`;
+  const rem = document.createElement("button");
+  rem.className = "brem"; rem.title = "Remove"; rem.textContent = "✕";
+  rem.onclick = () => { removeFromList(parentList, s.id); render(); };
+  head.appendChild(rem);
+  el.appendChild(head);
+
+  switch (s.kind) {
+    case "set":    el.appendChild(renderSet(s, scope)); break;
+    case "output": el.appendChild(renderOutput(s, scope)); break;
+    case "if":     el.appendChild(renderIf(s, scope)); break;
+    case "for":    el.appendChild(renderFor(s, scope)); break;
+    case "raw":    el.appendChild(renderRaw(s)); break;
+  }
+  return el;
+}
+
+function kindLabel(k, s) {
+  if (k === "output") return s && s.mode === "text" ? "Output · Plain text" : "Output · Variable";
+  return ({ set:"Set variable", output:"Output", if:"If / Elif / Else", for:"For loop", raw:"Raw Nunjucks" })[k] || k;
+}
+
+function renderSet(s, scope) {
+  const wrap = document.createElement("div");
+  const row = document.createElement("div"); row.className = "row";
+  row.appendChild(label("Name"));
+  const nameF = document.createElement("input");
+  nameF.className = "field";
+  nameF.value = s.name;
+  nameF.style.width = "140px";
+  nameF.oninput = (e) => {
+    const newName = e.target.value.replace(/[^A-Za-z0-9_]/g, "_");
+    s.name = newName;
+    // Re-render so downstream scopes see the renamed variable
+    render();
+    // Restore focus + caret since render re-creates the input
+    const fresh = document.querySelector(`.block[data-id="${s.id}"] input.field`);
+    if (fresh) { fresh.focus(); fresh.setSelectionRange(newName.length, newName.length); }
+  };
+  row.appendChild(nameF);
+  row.appendChild(label("="));
+  row.appendChild(renderValue(s.value, (v) => { s.value = v; }, {}, scope));
+  wrap.appendChild(row);
+  return wrap;
+}
+
+function renderOutput(s, scope) {
+  const wrap = document.createElement("div");
+  if (s.mode === "text") {
+    const ta = document.createElement("textarea");
+    ta.className = "field";
+    ta.rows = 2;
+    ta.style.width = "100%";
+    ta.placeholder = "Plain text that will be printed as-is…";
+    ta.value = s.text || "";
+    ta.oninput = (e) => { s.text = e.target.value; renderCode(); };
+    wrap.appendChild(ta);
+    wrap.appendChild(hint("Emits the text verbatim — no {{ }} wrapping."));
+  } else {
+    const row = document.createElement("div"); row.className = "row";
+    row.appendChild(label("Render"));
+    row.appendChild(renderValue(s.value, (v) => { s.value = v; }, {}, scope));
+    row.appendChild(hint("→ wraps in {{ }} so Nunjucks evaluates it"));
+    wrap.appendChild(row);
+  }
+  return wrap;
+}
+
+function renderIf(s, scope) {
+  const wrap = document.createElement("div");
+  s.branches.forEach((b, i) => {
+    const branch = document.createElement("div");
+    branch.className = "branch";
+    const top = document.createElement("div"); top.className = "row";
+    top.appendChild(label(i === 0 ? "If" : "Else if"));
+    if (i > 0) {
+      const rm = document.createElement("button");
+      rm.className = "btn ghost"; rm.textContent = "Remove branch";
+      rm.onclick = () => { s.branches.splice(i, 1); render(); };
+      top.appendChild(rm);
+    }
+    branch.appendChild(top);
+    branch.appendChild(renderCondition(b.condition, (nc) => { b.condition = nc; }, scope));
+    branch.appendChild(renderChildList(b.body, "Then run", scope));
+    wrap.appendChild(branch);
+  });
+  const ctl = document.createElement("div"); ctl.className = "row"; ctl.style.marginTop = "10px";
+  const addElif = document.createElement("button");
+  addElif.className = "btn ghost"; addElif.textContent = "+ Else if";
+  addElif.onclick = () => { s.branches.push({ id: uid(), condition: grp(), body: [] }); render(); };
+  ctl.appendChild(addElif);
+  if (!s.elseBody) {
+    const addElse = document.createElement("button");
+    addElse.className = "btn ghost"; addElse.textContent = "+ Else";
+    addElse.onclick = () => { s.elseBody = []; render(); };
+    ctl.appendChild(addElse);
+  } else {
+    const rmElse = document.createElement("button");
+    rmElse.className = "btn ghost"; rmElse.textContent = "Remove else";
+    rmElse.onclick = () => { s.elseBody = null; render(); };
+    ctl.appendChild(rmElse);
+  }
+  wrap.appendChild(ctl);
+  if (s.elseBody) {
+    const elseBranch = document.createElement("div");
+    elseBranch.className = "branch";
+    const t = document.createElement("div"); t.className = "row";
+    t.appendChild(label("Else"));
+    elseBranch.appendChild(t);
+    elseBranch.appendChild(renderChildList(s.elseBody, "Then run", scope));
+    wrap.appendChild(elseBranch);
+  }
+  return wrap;
+}
+
+function renderFor(s, scope) {
+  const wrap = document.createElement("div");
+  const row = document.createElement("div"); row.className = "row";
+  row.appendChild(label("For each"));
+  const it = document.createElement("input");
+  it.className = "field"; it.value = s.item; it.style.width = "120px";
+  it.oninput = (e) => {
+    s.item = e.target.value.replace(/[^A-Za-z0-9_]/g, "_") || "item";
+    render();
+    const fresh = document.querySelector(`.block[data-id="${s.id}"] input.field`);
+    if (fresh) { fresh.focus(); fresh.setSelectionRange(s.item.length, s.item.length); }
+  };
+  row.appendChild(it);
+  row.appendChild(label("in"));
+  row.appendChild(renderValue(s.iterable, (v) => { s.iterable = v; }, { allowLiteral: false }, scope));
+  wrap.appendChild(row);
+  // Loop body sees parent scope + the loop variable + Nunjucks' `loop.*` helpers.
+  // We flatten loop helpers as "loop.index" etc., which codegen emits as loop["index"].
+  const bodyScope = scope.concat([
+    { name: s.item, type: "unknown" },
+    { name: "loop.index",    type: "number" },
+    { name: "loop.index0",   type: "number" },
+    { name: "loop.first",    type: "bool" },
+    { name: "loop.last",     type: "bool" },
+    { name: "loop.length",   type: "number" },
+    { name: "loop.revindex", type: "number" },
+  ]);
+  wrap.appendChild(renderChildList(s.body, "Loop body", bodyScope));
+
+  // "else" fallback — runs when iterable is empty. Nunjucks supports {% else %} in {% for %}.
+  const ctl = document.createElement("div"); ctl.className = "row"; ctl.style.marginTop = "8px";
+  if (!s.elseBody) {
+    const add = document.createElement("button");
+    add.className = "btn ghost"; add.textContent = "+ If empty (else)";
+    add.title = "Runs when the iterable has no items";
+    add.onclick = () => { s.elseBody = []; render(); };
+    ctl.appendChild(add);
+  } else {
+    const rm = document.createElement("button");
+    rm.className = "btn ghost"; rm.textContent = "Remove else";
+    rm.onclick = () => { s.elseBody = null; render(); };
+    ctl.appendChild(rm);
+  }
+  wrap.appendChild(ctl);
+  if (s.elseBody) {
+    wrap.appendChild(renderChildList(s.elseBody, "If empty", scope));
+  }
+  return wrap;
+}
+
+function renderRaw(s) {
+  const wrap = document.createElement("div");
+  const ta = document.createElement("textarea");
+  ta.className = "field";
+  ta.rows = 3; ta.style.width = "100%"; ta.style.fontFamily = "ui-monospace, Menlo, Consolas, monospace";
+  ta.value = s.content;
+  ta.placeholder = "Paste raw Nunjucks here (escape hatch)";
+  ta.oninput = (e) => { s.content = e.target.value; renderCode(); };
+  wrap.appendChild(ta);
+  wrap.appendChild(hint("Escape hatch for power users. Keep rare — most things can be expressed as blocks."));
+  return wrap;
+}
+
+/* Child list with its own "+ Add statement". Tracks a local scope so
+   variables declared earlier in the list are visible to later blocks. */
+function renderChildList(list, labelText, scope) {
+  const c = document.createElement("div");
+  c.className = "children";
+  const h = document.createElement("p"); h.className = "clabel"; h.textContent = labelText;
+  c.appendChild(h);
+  const bl = document.createElement("div"); bl.className = "block-list";
+  let local = (scope || []).slice();
+  list.forEach(s => {
+    bl.appendChild(renderBlock(s, list, local));
+    local = extendScope(local, s);
+  });
+  c.appendChild(bl);
+  const add = document.createElement("button");
+  add.className = "chip-add";
+  add.textContent = "+ add statement";
+  add.style.marginTop = "8px";
+  add.onclick = (ev) => openStatementPicker(ev, list);
+  c.appendChild(add);
+  return c;
+}
+
+/* Condition group rendering. No longer has a group-wide AND/OR; instead
+   every item (except the first) shows its own clickable combinator pill. */
+function renderCondition(node, onChange, scope) {
+  const el = document.createElement("div");
+  el.className = "cond-group";
+
+  node.items.forEach((it, i) => {
+    const wrap = document.createElement("div");
+    wrap.className = it.kind === "grp" ? "cond-grow" : "cond-row";
+
+    // Per-row combinator pill (first row has no predecessor, so no pill).
+    if (i > 0) {
+      const comb = document.createElement("button");
+      comb.className = "combinator";
+      comb.textContent = (it.combinator || "and").toUpperCase();
+      comb.title = "Click to toggle AND / OR";
+      comb.onclick = () => { it.combinator = (it.combinator === "and") ? "or" : "and"; render(); };
+      wrap.appendChild(comb);
+    } else {
+      // A subtle placeholder so rows visually line up.
+      const spacer = document.createElement("span");
+      spacer.style.minWidth = "52px";
+      spacer.style.display = "inline-block";
+      wrap.appendChild(spacer);
+    }
+
+    if (it.kind === "cmp") {
+      wrap.appendChild(renderValue(it.left, (v) => { it.left = v; }, { allowLiteral: false }, scope));
+      const leftType = inferType(it.left, scope);
+      const op = document.createElement("select"); op.className = "field";
+      operatorOptionsFor(leftType).forEach(o => {
+        const opt = document.createElement("option"); opt.value = o; opt.textContent = o; op.appendChild(opt);
+      });
+      op.value = it.op;
+      op.onchange = (e) => { it.op = e.target.value; render(); };
+      wrap.appendChild(op);
+      // `is` tests (is defined, is number, ...) take no right-hand side.
+      if (!it.op.startsWith("is ")) {
+        wrap.appendChild(renderValue(it.right, (v) => { it.right = v; }, {}, scope));
+      }
+    } else {
+      wrap.appendChild(renderCondition(it, (nc) => { node.items[i] = nc; }, scope));
+    }
+
+    const rm = document.createElement("button");
+    rm.className = "btn ghost"; rm.textContent = "✕"; rm.title = "Remove";
+    rm.onclick = () => { node.items.splice(i, 1); render(); };
+    wrap.appendChild(rm);
+    el.appendChild(wrap);
+  });
+
+  const ctl = document.createElement("div"); ctl.className = "row"; ctl.style.marginTop = "8px";
+  const addCmp = document.createElement("button");
+  addCmp.className = "chip-add"; addCmp.textContent = "+ condition";
+  addCmp.onclick = () => { node.items.push(cmp()); render(); };
+  ctl.appendChild(addCmp);
+  const addGrp = document.createElement("button");
+  addGrp.className = "chip-add"; addGrp.textContent = "+ group";
+  addGrp.title = "Group conditions to force precedence, e.g. A AND (B OR C)";
+  addGrp.onclick = () => { node.items.push(grp()); render(); };
+  ctl.appendChild(addGrp);
+  el.appendChild(ctl);
+  return el;
+}
+
+/* Value input: token picker or literal. `scope` is the list of variable
+   names declared above this position; they appear in the token picker
+   alongside predefined tokens. */
+function renderValue(val, onChange, opts = {}, scope = []) {
+  const allowLiteral = opts.allowLiteral !== false;
+  const pill = document.createElement("span");
+  pill.className = "value-pill";
+
+  // Unified mode selector — "Token" (pick from dropdown) or a typed literal.
+  // Showing both options in one select makes it obvious that a value can be
+  // either a plain-text/typed literal OR a token from the catalog/scope.
+  const modeSel = document.createElement("select");
+  modeSel.className = "field vmode-sel";
+  modeSel.style.border = "0";
+  modeSel.style.borderRight = "1px solid var(--line-strong)";
+  modeSel.style.borderRadius = "0";
+  modeSel.style.background = "#f8f7fc";
+  modeSel.style.fontSize = "11px";
+  modeSel.style.fontWeight = "600";
+  const modes = allowLiteral
+    ? [
+        { v: "tok",    label: "Token" },
+        { v: "string", label: "Text" },
+        { v: "number", label: "Number" },
+        { v: "bool",   label: "Bool" },
+        { v: "array",  label: "Array" },
+      ]
+    : [{ v: "tok", label: "Token" }];
+  modes.forEach(m => {
+    const o = document.createElement("option");
+    o.value = m.v; o.textContent = m.label;
+    modeSel.appendChild(o);
+  });
+  modeSel.value = val.kind === "tok" ? "tok" : (val.type || "string");
+  modeSel.title = "Switch between a token and a plain-text / typed literal";
+  modeSel.onchange = (e) => {
+    const v = e.target.value;
+    if (v === "tok") {
+      Object.assign(val, tok(["user","custom","Country"]));
+    } else {
+      if (val.kind !== "lit") Object.assign(val, lit("", v));
+      else val.type = v;
+    }
+    render();
+  };
+  pill.appendChild(modeSel);
+
+  if (val.kind === "tok") {
+    const disp = document.createElement("span");
+    disp.className = "token-display";
+    const isVar = val.path.length === 1 && scopeHasVar(scope, val.path[0]);
+    disp.textContent = genTokenPath(val.path);
+    if (isVar) disp.style.color = "#b84a8e"; // tint local variables differently
+    disp.onclick = (ev) => openTokenPicker(ev, (path) => { val.path = path; render(); }, scope);
+    pill.appendChild(disp);
+  } else {
+    // literal — render the appropriate input for the chosen type
+    if (val.type === "bool") {
+      const s = document.createElement("select");
+      ["true","false"].forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = v; s.appendChild(o); });
+      s.value = val.value ? "true" : "false";
+      s.onchange = (e) => { val.value = e.target.value === "true"; renderCode(); };
+      pill.appendChild(s);
+    } else {
+      const inp = document.createElement("input");
+      inp.placeholder = val.type === "array"  ? "a, b, c"
+                      : val.type === "number" ? "0"
+                      : "plain text…";
+      inp.value = val.value ?? "";
+      inp.oninput = (e) => { val.value = e.target.value; renderCode(); };
+      pill.appendChild(inp);
+    }
+  }
+
+  // Wrap value pill + filter chain in a container.
+  const holder = document.createElement("span");
+  holder.className = "value-holder";
+  holder.appendChild(pill);
+
+  // Progressive type through the filter chain — used to decide what
+  // filters the picker offers at each position.
+  let runningType = inferTypeAtBase(val, scope);
+  (val.filters || []).forEach((f, i) => {
+    const chip = document.createElement("span");
+    chip.className = "filter-chip";
+    const name = document.createElement("span");
+    name.className = "fname";
+    name.textContent = "| " + f.name;
+    chip.appendChild(name);
+    // Render filter args inline.
+    (f.args || []).forEach((a, ai) => {
+      const def = FILTERS[f.name] && FILTERS[f.name].args[ai];
+      const inp = document.createElement("input");
+      inp.className = "farg";
+      inp.placeholder = def ? def.label : "arg";
+      inp.value = a.value ?? "";
+      inp.oninput = (e) => { a.value = e.target.value; renderCode(); };
+      chip.appendChild(inp);
+    });
+    const x = document.createElement("button");
+    x.className = "fx"; x.textContent = "×"; x.title = "Remove filter";
+    x.onclick = () => { val.filters.splice(i, 1); render(); };
+    chip.appendChild(x);
+    holder.appendChild(chip);
+    runningType = filterOutputType(f.name, runningType);
+  });
+
+  // + filter button, constrained by runningType.
+  const addF = document.createElement("button");
+  addF.className = "chip-add filter-add";
+  addF.textContent = "+ filter";
+  addF.title = `Add a filter (current type: ${runningType})`;
+  addF.onclick = (ev) => openFilterPicker(ev, runningType, (name) => {
+    if (!val.filters) val.filters = [];
+    val.filters.push(mkFilter(name));
+    render();
+  });
+  holder.appendChild(addF);
+
+  return holder;
+}
+
+function label(t) {
+  const s = document.createElement("span");
+  s.className = "lbl"; s.textContent = t;
+  return s;
+}
+function hint(t) {
+  const s = document.createElement("span"); s.className = "hint"; s.textContent = t; return s;
+}
+
+function removeFromList(list, id) {
+  const i = list.findIndex(x => x.id === id);
+  if (i >= 0) list.splice(i, 1);
+}
+
+/* ============================================================
+   Statement picker popover
+   ============================================================ */
+const backdrop = document.getElementById("pop-backdrop");
+let currentPop = null;
+function closePop() {
+  backdrop.classList.remove("open");
+  if (currentPop) { currentPop.remove(); currentPop = null; }
+}
+backdrop.onclick = closePop;
+
+function openStatementPicker(ev, targetList) {
+  ev.stopPropagation();
+  closePop();
+  const pop = document.createElement("div");
+  pop.className = "popover";
+  const items = [
+    { kind:"set",       title:"Set variable",      k:"≡",  desc:"Store a value in a variable" },
+    { kind:"if",        title:"If / Elif / Else",  k:"?",  desc:"Branch on conditions" },
+    { kind:"for",       title:"For loop",          k:"↻",  desc:"Iterate over an array/list" },
+    { kind:"output",    title:"Output variable",   k:"→",  desc:"Print a token, variable, or expression (wrapped in {{ }})" },
+    { kind:"outputTxt", title:"Output plain text", k:"¶",  desc:"Emit text verbatim — no Nunjucks wrapping" },
+    { kind:"raw",       title:"Raw Nunjucks",      k:"{}", desc:"Escape hatch: paste raw code" },
+  ];
+  items.forEach(it => {
+    const row = document.createElement("div");
+    row.className = "pitem"; row.dataset.kind = it.kind;
+    row.innerHTML = `<span class="pk">${it.k}</span><div><div>${it.title}</div><div class="pd">${it.desc}</div></div>`;
+    row.onclick = () => {
+      let s;
+      if (it.kind === "set")       s = mkSet();
+      if (it.kind === "if")        s = mkIf();
+      if (it.kind === "for")       s = mkFor();
+      if (it.kind === "output")    s = mkOutput();
+      if (it.kind === "outputTxt") s = mkOutputText();
+      if (it.kind === "raw")       s = mkRaw();
+      targetList.push(s);
+      closePop(); render();
+    };
+    pop.appendChild(row);
+  });
+  positionPop(pop, ev.target);
+  document.body.appendChild(pop);
+  backdrop.classList.add("open");
+  currentPop = pop;
+}
+
+/* ============================================================
+   Token picker popover — shows variables in scope + predefined tokens
+   ============================================================ */
+function openTokenPicker(ev, onPick, scope = []) {
+  ev.stopPropagation();
+  closePop();
+  const pop = document.createElement("div");
+  pop.className = "popover tokpop";
+  let path = []; // current drilldown
+  let search = "";
+
+  function node() {
+    let n = TOKEN_SCHEMA;
+    for (const k of path) n = n[k];
+    return n;
+  }
+  function sectionHeader(text) {
+    const h = document.createElement("div");
+    h.style.fontSize = "11px";
+    h.style.textTransform = "uppercase";
+    h.style.letterSpacing = "0.06em";
+    h.style.color = "var(--ink-muted)";
+    h.style.padding = "10px 8px 4px 8px";
+    h.style.fontWeight = "600";
+    h.textContent = text;
+    return h;
+  }
+  function varRow(entry) {
+    const el = document.createElement("div"); el.className = "tnode";
+    const nm = document.createElement("span"); nm.className = "tname";
+    nm.textContent = entry.name;
+    nm.style.color = "#b84a8e";
+    el.appendChild(nm);
+    const meta = document.createElement("span"); meta.className = "tmeta";
+    meta.textContent = `variable · ${entry.type || "unknown"}`;
+    el.appendChild(meta);
+    el.onclick = () => { onPick([entry.name]); closePop(); };
+    return el;
+  }
+
+  function draw() {
+    pop.innerHTML = "";
+    const s = document.createElement("input");
+    s.className = "tsearch"; s.placeholder = "Search tokens or variables…"; s.value = search;
+    s.oninput = (e) => { search = e.target.value; draw(); s.focus(); s.setSelectionRange(search.length, search.length); };
+    pop.appendChild(s);
+
+    // Breadcrumb only makes sense while drilled into the predefined tree
+    if (path.length > 0) {
+      const crumb = document.createElement("div"); crumb.className = "tcrumb";
+      const home = document.createElement("a"); home.textContent = "root"; home.onclick = () => { path = []; draw(); };
+      crumb.appendChild(home);
+      path.forEach((p, i) => {
+        const sep = document.createElement("span"); sep.textContent = " / "; crumb.appendChild(sep);
+        const a = document.createElement("a"); a.textContent = p;
+        a.onclick = () => { path = path.slice(0, i + 1); draw(); };
+        crumb.appendChild(a);
+      });
+      pop.appendChild(crumb);
+    }
+
+    const q = search.trim().toLowerCase();
+
+    // 1) Variables declared above — only surfaced at the top level (not while drilled into a sub-group)
+    if (path.length === 0) {
+      const varMatches = scope.filter(v => !q || v.name.toLowerCase().includes(q));
+      if (varMatches.length) {
+        pop.appendChild(sectionHeader("Variables declared above"));
+        varMatches.forEach(v => pop.appendChild(varRow(v)));
+      }
+    }
+
+    // 2) Predefined tokens — search flat, or show current drilldown level
+    if (q) {
+      const results = [];
+      function walk(n, pfx) {
+        Object.keys(n).forEach(k => {
+          if (k === "_meta") return;
+          const v = n[k];
+          const np = pfx.concat(k);
+          if (np.join(" ").toLowerCase().includes(q) || k.toLowerCase().includes(q)) {
+            results.push({ path: np, leaf: !!v._leaf });
+          }
+          if (!v._leaf) walk(v, np);
+        });
+      }
+      walk(TOKEN_SCHEMA, []);
+      if (results.length) {
+        pop.appendChild(sectionHeader("Predefined tokens"));
+        results.slice(0, 80).forEach(r => pop.appendChild(nodeRow(r.path, r.leaf, true)));
+      } else if (path.length === 0 && !scope.some(v => v.name.toLowerCase().includes(q))) {
+        const e = document.createElement("div"); e.className = "tnode"; e.textContent = "No tokens or variables match.";
+        pop.appendChild(e);
+      }
+    } else {
+      if (path.length === 0) pop.appendChild(sectionHeader("Predefined tokens"));
+      const n = node();
+      Object.keys(n).forEach(k => {
+        if (k === "_meta") return;
+        const v = n[k];
+        pop.appendChild(nodeRow(path.concat(k), !!v._leaf, false, v._meta && v._meta.label));
+      });
+    }
+  }
+  function nodeRow(p, leaf, fromSearch, labelHint) {
+    const el = document.createElement("div"); el.className = "tnode";
+    const nm = document.createElement("span"); nm.className = "tname";
+    nm.textContent = fromSearch ? genTokenPath(p) : p[p.length - 1];
+    el.appendChild(nm);
+    const meta = document.createElement("span"); meta.className = "tmeta";
+    if (leaf) {
+      // look up leaf's declared type in TOKEN_SCHEMA
+      let n = TOKEN_SCHEMA;
+      for (const k of p) n = n && n[k];
+      meta.textContent = (n && n.type) ? n.type : "leaf";
+    } else {
+      meta.textContent = labelHint || "group";
+    }
+    el.appendChild(meta);
+    el.onclick = () => {
+      if (leaf) { onPick(p); closePop(); }
+      else if (fromSearch) { path = p; search = ""; draw(); }
+      else { path = p; draw(); }
+    };
+    return el;
+  }
+  draw();
+  positionPop(pop, ev.target);
+  document.body.appendChild(pop);
+  backdrop.classList.add("open");
+  currentPop = pop;
+}
+
+/* ============================================================
+   Filter picker — filtered by the input type of the value at this
+   position in the chain. "Available" filters come first, then an
+   "All filters" section so users can still explore.
+   ============================================================ */
+function openFilterPicker(ev, inputType, onPick) {
+  ev.stopPropagation();
+  closePop();
+  const pop = document.createElement("div");
+  pop.className = "popover filterpop";
+
+  const names = Object.keys(FILTERS);
+  const applicable = names.filter(n => filterAcceptsType(n, inputType));
+  const other     = names.filter(n => !filterAcceptsType(n, inputType));
+
+  function sec(text) {
+    const h = document.createElement("div"); h.className = "fsec"; h.textContent = text;
+    return h;
+  }
+  function row(name) {
+    const def = FILTERS[name];
+    const argList = (def.args || []).map(a => a.label).join(", ");
+    const sig = `${def.in.join("|")} → ${def.out}${argList ? `  (${argList})` : ""}`;
+    const el = document.createElement("div"); el.className = "frow";
+    const nm = document.createElement("span"); nm.textContent = "| " + name; el.appendChild(nm);
+    const s = document.createElement("span"); s.className = "fsig"; s.textContent = sig; el.appendChild(s);
+    el.onclick = () => { onPick(name); closePop(); };
+    return el;
+  }
+
+  pop.appendChild(sec(`For ${inputType === "unknown" ? "any value" : inputType + " values"}`));
+  if (applicable.length) applicable.forEach(n => pop.appendChild(row(n)));
+  else pop.appendChild(Object.assign(document.createElement("div"), { className: "frow", textContent: "— no filters typically match this type —" }));
+
+  if (other.length) {
+    pop.appendChild(sec("Other filters"));
+    other.forEach(n => pop.appendChild(row(n)));
+  }
+
+  positionPop(pop, ev.target);
+  document.body.appendChild(pop);
+  backdrop.classList.add("open");
+  currentPop = pop;
+}
+
+function positionPop(pop, anchor) {
+  const r = anchor.getBoundingClientRect();
+  pop.style.top = (window.scrollY + r.bottom + 6) + "px";
+  pop.style.left = Math.min(window.scrollX + r.left, window.innerWidth - 340) + "px";
+}
+
+/* ============================================================
+   Syntax highlighting (lightweight)
+   ============================================================ */
+function highlight(src) {
+  const esc = (s) => s.replace(/[&<>]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
+  let out = esc(src);
+  // strings
+  out = out.replace(/"([^"\\]|\\.)*"/g, m => `<span class="tok-str">${m}</span>`);
+  // {% ... %}
+  out = out.replace(/(\{%)([\s\S]*?)(%\})/g, (m, a, inner, b) => {
+    let hi = inner.replace(/\b(set|if|elif|else|endif|for|endfor|in|and|or|not|true|false)\b/g, '<span class="tok-kw">$1</span>');
+    return `<span class="tok-tag">${a}</span>${hi}<span class="tok-tag">${b}</span>`;
+  });
+  // {{ ... }}
+  out = out.replace(/(\{\{)([\s\S]*?)(\}\})/g, (m,a,i,b) => `<span class="tok-tag">${a}</span>${i}<span class="tok-tag">${b}</span>`);
+  // {# ... #}
+  out = out.replace(/(\{#[\s\S]*?#\})/g, '<span class="tok-dim">$1</span>');
+  return out;
+}
+function renderCode() {
+  const src = genProgram(program, 0);
+  codeEl.innerHTML = highlight(src);
+}
+
+/* ============================================================
+   Top-level wiring
+   ============================================================ */
+document.querySelector("[data-add-root]").onclick = (ev) => openStatementPicker(ev, program);
+
+document.getElementById("btn-clear").onclick = () => { program = []; render(); };
+document.getElementById("btn-load-sample").onclick = () => { program = sampleProgram(); render(); };
+
+function copyCode() {
+  const src = genProgram(program, 0);
+  navigator.clipboard.writeText(src).then(() => {
+    const btn = document.getElementById("btn-copy");
+    const o = btn.textContent; btn.textContent = "Copied ✓";
+    setTimeout(() => btn.textContent = o, 1200);
+  });
+}
+document.getElementById("btn-copy").onclick = copyCode;
+document.getElementById("btn-copy2").onclick = copyCode;
+
+/* ============================================================
+   Sample program — a simplified version of the user's example
+   ============================================================ */
+function sampleProgram() {
+  // Helper to build a token with a prebuilt filter chain.
+  const tokWith = (path, ...filters) => { const t = tok(path); t.filters = filters; return t; };
+  const filt = (name, ...argVals) => {
+    const f = mkFilter(name);
+    argVals.forEach((v, i) => { if (f.args[i]) f.args[i].value = v; });
+    return f;
+  };
+
+  // --- String variables with hygiene filters
+  //     country = (user.custom.Country | lower | default("unknown"))
+  const setCountry = mkSet("country",
+    tokWith(["user","custom","Country"], filt("lower"), filt("default", "unknown")));
+  //     name = (user.first_name | title | default("there"))
+  const setName = mkSet("name",
+    tokWith(["user","first_name"], filt("title"), filt("default", "there")));
+
+  // --- Array variable:
+  //     tags = user.custom["Interested Categories"]
+  const setTags = mkSet("tags", tok(["user","custom","Interested Categories"]));
+
+  // --- If condition mixes types & filters:
+  //   if tags | length >= 3
+  //      and (country == "saudi arabia" or country == "bahrain")
+  //      and user.custom.Age is defined
+  const condTags = cmp(
+    tokWith(["tags"], filt("length")),   // array -> number
+    ">=",
+    lit("3", "number")
+  );
+  const condCountryA = cmp(tok(["country"]), "==", lit("saudi arabia"), "and");
+  const condCountryB = cmp(tok(["country"]), "==", lit("bahrain"), "or");
+  const countryGrp = grp([condCountryA, condCountryB], "and");
+  const condAgeDefined = cmp(tok(["user","custom","Age"]), "is defined", lit(""), "and");
+
+  const ifBlock = mkIf();
+  ifBlock.branches[0].condition = grp([condTags, countryGrp, condAgeDefined]);
+
+  // Then: greet the user with a tailored message, loop tags 2-up.
+  //   "Hi {{ name }}, you might love:"
+  ifBlock.branches[0].body = [
+    mkOutputText("Hi "),
+    mkOutput(tokWith(["name"])),
+    mkOutputText(", you might love:"),
+  ];
+  //   for pair in (tags | batch(2))
+  //     {{ pair | join(" & ") }}{% if not loop.last %}, {% endif %}
+  const forLoop = mkFor("pair", tokWith(["tags"], filt("batch", "2")));
+  forLoop.body = [
+    mkOutput(tokWith(["pair"], filt("join", " & "))),
+  ];
+  // Empty fallback
+  forLoop.elseBody = [ mkOutputText("No tagged interests yet.") ];
+  ifBlock.branches[0].body.push(forLoop);
+
+  // Else: default greeting (plain text, no variables)
+  ifBlock.elseBody = [
+    mkOutputText("Hi there, explore our picks!"),
+  ];
+
+  return [setCountry, setName, setTags, ifBlock];
+}
+
+/* boot */
+program = sampleProgram();
+render();
+</script>
+</body>
+</html>
